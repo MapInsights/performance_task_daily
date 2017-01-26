@@ -1,0 +1,1686 @@
+# DAILY PERFORMANCE REPORT FOR...
+
+```{r echo=FALSE}
+start <- as.Date(Sys.time() - (60*60*24))
+start
+```
+
+
+```{r echo=FALSE, message=FALSE,warning=FALSE}
+#gtc <- rbind(gtc, gtc1)
+
+library(stringr)
+library(dplyr)
+library(ggplot2)
+library(xlsx)
+library(rJava)
+setwd('C:/Programs/gtc_tasks/performance_task_daily/')
+
+
+
+```
+
+```{r echo=FALSE, message=FALSE,warning=FALSE}
+forecast<-'forecast/F2_dailyJobsForecast_Values.xlsx'
+
+
+
+f1<-read.xlsx2(file=forecast,sheetName = 'Sheet1',header = TRUE,stringsAsFactors = FALSE)
+f2<-f1
+f1$week<-as.numeric(f1$week)
+f1$day<-as.numeric(f1$day)
+f1$date<-as.numeric(f1$date)
+f1$Account<-as.numeric(f1$Account)
+f1$Card<-as.numeric(f1$Card)
+f1$Cash<-as.numeric(f1$Cash)
+f1$Total<-as.numeric(f1$Total)
+f1$ActualTotal<-as.numeric(f1$ActualTotal)
+f1$OnTime3Mins<-as.numeric(f1$asapOnTime3Mins)
+f1$OnTime<-as.numeric(f1$PreBookOnTime3Mins)
+f1$ActualClassic<-as.numeric(f1$asapOnTime)
+f1$ActualLite<-as.numeric(f1$PreBookOnTime)
+f1$GTCDrivers<-as.numeric(f1$GTCDrivers)
+f1$LiteDrivers<-as.numeric(f1$LiteDrivers)
+f1$CRMs<-as.numeric(f1$CRMs)
+
+#get today in crazy excel days since 1900
+xlToday<-as.Date(Sys.Date())
+xlToday<-difftime(xlToday,'1900-01-01',units='days') + 2 
+xlToday<-as.numeric(xlToday)
+rowNo<-as.numeric(difftime(as.Date(Sys.Date()),'2015-12-21',units='days') )
+
+```
+
+```{r echo=FALSE, message=FALSE,warning=FALSE}
+dropname <-"spreadsheets/results.csv"
+
+filename <- paste(start, "_", "results.xlsx", sep = '')
+filename <- paste("spreadsheets/",filename,sep="")
+# load package for sql
+library(DBI)
+library(RODBC)
+# connect to database
+odbcChannel <- odbcConnect('Rstudio', uid='Daria Alekseeva', pwd='Welcome30')
+
+# query for last day which is not in archive yet
+gtc  <- sqlQuery( odbcChannel, 
+"
+declare @FROM datetime
+declare @TO datetime
+set @FROM ='2016-06-01' --DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111))
+set @TO = '2016-12-10'--DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111)) +'23:59:59'
+select j.id, ca.number as 'AccountNumber', ca.name as 'AccountName', cg.name as 'Grade', j.jobDate, jh.actionDate as 'ArrivalTime',
+DATEDIFF(minute, j.jobDate, jh.actionDate) as 'MinDiff',
+c.name as 'Driver',
+isnull(vt.name, 'Partners') as 'VehicleType',
+adr.name as 'PickUpPC',
+j.asap,
+j.jobStatus,
+j.actualDistance,
+j.totalDistance,
+j.totalPrice,
+case when j.creationType=0  then 'Echo'
+	 when j.creationType=1  then 'Web'
+     when j.creationType=2  then 'IOS'
+	 when j.creationType=3  then 'Android'
+     when j.creationType=4  then 'Oscar'
+   	 when j.creationType=5 then 'One Transport'
+     when j.creationType=7  then 'Persona'
+	 when j.creationType=9  then 'GTC overflow iOS'
+   	 when j.creationType=10  then 'GTC overflow Android'
+   	 when j.creationType=11  then 'iOS Lite'
+   	 when j.creationType=12  then 'Android Lite'
+	 when j.creationType=14  then 'iOS GTC'
+	 when j.creationType=15  then 'Android GTC'
+	 when j.creationType=16 then 'Cityfleet'  end 'creationType',
+(select top 1 jh.shortArg from echo_core_prod.dbo.job_history jh where jh.jobReference=j.id and jh.shortArg like '%about Late to Pickup') as 'NotificationLate',
+(select top 1 username from echo_core_prod..job_history where actionType=18 and jobReference=j.id) as 'AllocatedBy',
+DATEPART(hh, jobdate)*60 + DATEPART(mi, jobdate) 'TimeInMin'
+from echo_core_prod.dbo.jobs j
+LEFT JOIN (select jh.jobReference, min(jh.actionDate) as 'actionDate'from echo_core_prod.dbo.job_history jh 
+ where jh.shortArg = 'Arrived' and jh.actionType = 1 group by jh.jobReference) jh
+ ON jh.jobReference = j.id 
+LEFT JOIN Echo_core_prod.dbo.customer_accounts ca
+ on ca.id = j.customer_account_id
+LEFT JOIN Echo_core_prod.dbo.customer_grades cg
+ on cg.id=ca.grade_id
+LEFT JOIN Echo_core_prod.dbo.callsigns c
+ on c.driver_id=j.driver_id
+LEFT JOIN
+ (select adr.name, st.job_id
+ from Echo_core_prod.dbo.job_stops st
+ inner join
+ (select a.fullStr, p.name, a.id from Echo_core_prod.dbo.addresses a inner join Echo_core_prod.dbo.areas p on a.postcode_id = p.id) adr
+ on adr.id = st.address_id where st.orderNumber = 0) adr
+ on j.id = adr.job_id
+Left Join Echo_core_prod..vehicles v on j.vehicle_id=v.id Left join Echo_core_prod..models m on v.model_id=m.id Left join Echo_core_prod..vehicle_types vt on m.vehicle_type_id=vt.id
+where j.jobstatus in (7,10) 
+and j.creationtype not in (9,10,11,12)
+and j.jobDate between @FROM and @TO
+
+order by j.id
+
+
+")
+
+DeadMiles<-sqlQuery( odbcChannel, 
+"
+declare @FROM datetime
+declare @TO datetime
+set @FROM ='2016-06-01' --DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111))
+set @TO = '2016-12-10'--DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111)) +'23:59:59'
+select			
+	j.id,	
+j.actualDistance,
+j.totalDistance,
+	ca.number,		
+	ad.fullStr,		
+	ar.name,		
+--	adr1.fullStr as 'Dropoff',		
+--	adr1.name as 'DropOffPC'  ,		
+	j.jobDate,		
+	j.totalNetPrice,		
+	a0.*,		
+	a1.*,		
+	a2.*,		
+	c.name 'Driver_who_completed_job',		
+	i.fullName as 'Driver_name' 		
+	from 		
+		(select 	
+			jh.jobReference,
+			max(jh.actionDate) as 'Allocated to driver',
+			jh.userName 'Who did it'
+			from echo_Core_prod..job_history jh
+			where jh.actionType=18
+			group by jh.jobReference,jh.userName) a0
+	left join 		
+		(select	
+			a.jobId,
+			max(a.planningTimestamp) as 'last on AA'
+			from echo_core_prod..autoallocations a
+			group by a.jobId)a1 
+	on a1.jobId=a0.jobReference		
+	left join 		
+		(Select 	
+			jobid,
+			planningTimestamp,
+			driverName,
+			vehicleRegNumber,
+			distanceToPU,
+			journeyToPU,
+			dispatchTime 
+			from echo_core_prod..autoallocations)a2
+	on a2.jobId=a1.jobId and a2.planningTimestamp=a1.[last on AA]		
+left join echo_core_prod..jobs j on j.id=a0.jobReference		
+	join echo_core_prod..callsigns c on c.driver_id=j.driver_id		
+	join echo_core_prod..individuals i on i.id=c.driver_id		
+	join echo_core_prod..customer_accounts ca on ca.id=j.customer_account_id		
+	join echo_core_prod..job_stops js on js.job_id=j.id		
+	join echo_core_prod..addresses ad on ad.id=js.address_id		
+	join echo_core_prod..areas ar on ar.id=ad.postcode_id		
+	--adresses	
+	--	LEFT JOIN (select adr.name, adr.fullStr, st.job_id from Echo_core_prod.dbo.job_stops st	
+	---	inner join	
+	---	(select a.fullStr, p.name, a.id from Echo_core_prod.dbo.addresses a inner join Echo_core_prod.dbo.areas p on a.postcode_id = p.id) adr	
+	--	on adr.id = st.address_id where st.orderNumber = 0) adr on j.id = adr.job_id	
+	--	LEFT JOIN	
+	--	(select adr.name, adr.fullStr, st.job_id from Echo_core_prod.dbo.job_stops st	
+	--	inner join	
+	--	(select a.fullStr, p.name, a.id from Echo_core_prod.dbo.addresses a inner join Echo_core_prod.dbo.areas p on a.postcode_id = p.id) adr	
+	--	on adr.id = st.address_id where st.orderNumber = 1) adr1	
+--		on j.id = adr1.job_id	
+			
+	where js.orderNumber=0		
+	--and	
+	and j.jobDate between @FROM and @TO
+--	and journeyToPU is not null		
+	order by j.id
+")
+
+CRMQuery <-sqlQuery( odbcChannel,
+     "declare @FROM datetime
+declare @TO datetime
+set @FROM ='2016-06-01' --DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111))
+set @TO = '2016-12-10'--DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111)) +'23:59:59'
+
+select ji.id 
+from echo_core_prod..job_issues ji
+where creationDate between @FROM and @TO
+and category_id in (3,8,9,10,11,12,17,18,22)
+                      
+                      ")
+
+
+##query for each 5 min driver status 
+drivers <- sqlQuery( odbcChannel, 
+"
+declare @FROM datetime
+declare @TO datetime
+set @FROM ='2016-06-01' --DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111))
+set @TO = '2016-12-10'--DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111)) +'23:59:59'
+
+select * 
+from Archive_echo_core_prod.dbo.OnlineDriversHistory 
+where timestamp between @FROM and @TO ")
+
+
+jobhistory <- sqlQuery( odbcChannel, 
+"
+declare @FROM datetime
+declare @TO datetime
+set @FROM ='2016-06-01' --DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111))
+set @TO = '2016-12-10'--DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111)) +'23:59:59'
+
+select j.id, j.jobDate, ca.number, ca.name, c.name 'UserName' ,
+(select min(jh.actionDate) from
+(select * from Echo_core_prod..job_history union select * from Archive_echo_core_prod..job_history) jh 
+where j.id = jh.jobReference and jh.shortArg = 'Accepted') 'TimeAccepted',
+(select min(jh.actionDate) from
+(select * from Echo_core_prod..job_history union select * from Archive_echo_core_prod..job_history) jh 
+where j.id = jh.jobReference and jh.shortArg = 'Arrived') 'TimeArrived',
+(select min(jh.actionDate) from
+(select * from Echo_core_prod..job_history union select * from Archive_echo_core_prod..job_history) jh 
+where j.id = jh.jobReference and jh.shortArg = 'POB') 'TimePoB',
+(select min(jh.actionDate) from
+(select * from Echo_core_prod..job_history union select * from Archive_echo_core_prod..job_history) jh 
+where j.id = jh.jobReference and jh.shortArg = 'Completed') 'TimeCompleted'
+from echo_core_prod..jobs j
+left join echo_core_prod..customer_accounts ca on j.customer_account_id = ca.id
+left join Echo_core_prod..callsigns c on c.driver_id=j.driver_id
+where j.jobStatus = 7 and j.jobDate between @FROM and @TO and c.name is not null
+and c.name not like 'DD%'
+")
+
+ResponseTime <-sqlQuery( odbcChannel,"
+declare @startDate date
+declare @endDate date
+set @FROM ='2016-06-01' --DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111))
+set @TO = '2016-12-10'--DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111)) +'23:59:59'
+select startDate,datepart(hour,startDate) 'Hour',DATEPART(minute,startDate) 'Minute', pickupAddress, delay,serviceId
+from echo_core_prod..dynamic_delay_promises where source = 8  and
+ startDate between  @startDate and @endDate                    
+                     
+                     ")
+
+cashblock <- sqlQuery( odbcChannel, 
+"
+declare @FROM datetime
+declare @TO datetime
+set @FROM ='2016-06-01' --DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111))
+set @TO = '2016-12-10'--DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111)) +'23:59:59'
+
+	select daa.id, daa.REVTYPE, daa.fromTime, daa.toTime, r.timestamp, r.username,
+	case daa.dayOfWeek when 1 then 'Monday'
+					   when 2 then 'Tuesday'
+					   when 3 then 'Wednesday'
+					   when 4 then 'Thursday'
+					   when 5 then 'Friday'
+					   when 6 then 'Saturday'
+					   when 0 then 'Sunday' end 'Weekday'
+	from echo_core_prod..day_availabilities_AUD daa
+	join echo_core_prod..REVINFO r on r.id=daa.REV
+	where timestamp between @FROM and @TO
+	and type = 1
+	and customer_account_id = 3743
+")
+
+bookings <-sqlQuery( odbcChannel, 
+  "declare @yesterdayFROM datetime
+declare @yesterdayTO datetime
+set @yesterdayFROM = '2016-06-01' --DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111))
+set @yesterdayTO = '2016-12-10'--DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111)) +'23:59:59'
+
+select j.id, jh.userName, jh.actionDate,jh.shortArg, jh.jobReference,jh2.shortArg,jh2.actionDate,jh2.userName,j.creationType,j.jobStatus,
+datepart(year,j.jobdate) 'JobYear',
+datepart(ISO_WEEK,j.jobdate) 'JobWeek',
+datepart(Month,j.jobdate) 'JobMonth',
+j.jobdate
+from echo_core_prod..jobs j
+left join (select * from Archive_Echo_Core_Prod..job_history union select * from Echo_Core_Prod..job_history)jh on j.id = jh.jobReference and jh.shortArg = 'Cancelled'
+left join (select * from Archive_Echo_Core_Prod..job_history union select * from Echo_Core_Prod..job_history)jh2 on j.id = jh2.jobReference and jh2.shortArg = 'ON_HOLD'
+--left join Echo_Core_Prod..jobs j on j.id = jh.jobReference
+where --jh.shortArg = 'Cancelled'
+ j.creationType in (5,16,18,4,7)
+and j.jobStatus in (7,9,10)
+and j.jobDate between @yesterdayFROM and @yesterdayTO")
+
+snapshot<-sqlQuery( odbcChannel, "declare @yesterdayFROM datetime
+declare @yesterdayTO datetime
+set @yesterdayFROM = '2016-06-01' --DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111))
+set @yesterdayTO = '2016-12-10'--DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111)) +'23:59:59'
+
+select --distinct datepart(HOUR,j.jobdate) 'Hour',
+		count(DISTINCT (case when  datepart(hour,jt.actualAcceptTime) < '3' and datepart(hour,jt.actualPodTime) >= '3' then jt.job_Id else null end)) '3am',
+		count(DISTINCT (case when  datepart(hour,jt.actualAcceptTime) < '8' and datepart(hour,jt.actualPodTime) >= '8' then jt.job_Id else null end)) '8am',
+		count(DISTINCT (case when  datepart(hour,jt.actualAcceptTime) < '13' and datepart(hour,jt.actualPodTime) >= '13' then jt.job_Id else null end)) '1pm',
+		count(DISTINCT (case when  datepart(hour,jt.actualAcceptTime) < '18' and datepart(hour,jt.actualPodTime) >= '18' then jt.job_Id else null end)) '6pm',
+		count(DISTINCT (case when  datepart(hour,jt.actualAcceptTime) < '20' and datepart(hour,jt.actualPodTime) >= '20' then jt.job_Id else null end)) '8pm',
+		count(DISTINCT (case when  datepart(hour,jt.actualAcceptTime) < '23' and datepart(hour,jt.actualPodTime) >= '23' then jt.job_Id else null end)) '11pm'
+from echo_core_prod..job_times jt
+left join echo_core_prod..jobs j on j.id =jt.job_Id 
+where j.jobDate between @yesterdayFROM and @yesterdayTO")
+
+
+snapshotASAP<-sqlQuery( odbcChannel, "declare @yesterdayFROM datetime
+declare @yesterdayTO datetime
+set @yesterdayFROM = '2016-06-01' --DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111))
+set @yesterdayTO = '2016-12-10'--DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111)) +'23:59:59'
+
+select --distinct datepart(HOUR,j.jobdate) 'Hour',
+		count(DISTINCT (case when  datepart(hour,jt.actualAcceptTime) < '3' and datepart(hour,jt.actualPodTime) >= '3' then jt.job_Id else null end)) '3am',
+		count(DISTINCT (case when  datepart(hour,jt.actualAcceptTime) < '8' and datepart(hour,jt.actualPodTime) >= '8' then jt.job_Id else null end)) '8am',
+		count(DISTINCT (case when  datepart(hour,jt.actualAcceptTime) < '13' and datepart(hour,jt.actualPodTime) >= '13' then jt.job_Id else null end)) '1pm',
+		count(DISTINCT (case when  datepart(hour,jt.actualAcceptTime) < '18' and datepart(hour,jt.actualPodTime) >= '18' then jt.job_Id else null end)) '6pm',
+		count(DISTINCT (case when  datepart(hour,jt.actualAcceptTime) < '20' and datepart(hour,jt.actualPodTime) >= '20' then jt.job_Id else null end)) '8pm',
+		count(DISTINCT (case when  datepart(hour,jt.actualAcceptTime) < '23' and datepart(hour,jt.actualPodTime) >= '23' then jt.job_Id else null end)) '11pm'
+from echo_core_prod..job_times jt
+left join echo_core_prod..jobs j on j.id =jt.job_Id 
+where j.jobDate between @yesterdayFROM and @yesterdayTO
+and j.asap = 1")
+
+odbcClose(odbcChannel)
+
+
+
+
+```
+
+
+
+```{r echo=FALSE, message=FALSE,warning=FALSE}
+match <- c('2200', '6443', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7', 'G8', 'G9.1', 'G9.5', 'GTC888', 'G50', 'G51', 'G5555', '7002', 'LONGTC1387')
+
+gtc <- gtc[!(gtc$AccountNumber %in% match),]
+
+
+###GTC
+gtc$Hour <- format( as.POSIXct(gtc$jobDate), "%H")
+gtc$Date <- format( as.POSIXct(gtc$jobDate), "%Y-%m-%d")
+gtc$Weekday <- weekdays(as.POSIXct(gtc$jobDate)) 
+gtc$MinDiff <- as.numeric(gtc$MinDiff)
+gtc$Count <- 1
+
+gtc$Type <- 'Account'
+
+gtc[gtc$AccountNumber == 'G10' | gtc$AccountNumber == 'LHR',]$Type <- 'G10'
+
+gtc[gtc$asap==1,]$asap <- 'asap'
+gtc[gtc$asap==0,]$asap <- 'prebook'
+
+
+# add column for 4 types of jobs
+gtc$Type2 <- 'type'
+gtc[gtc$asap == 'asap' & gtc$Type == 'G10',]$Type2 <- 'asap_g10'
+gtc[gtc$asap == 'asap' & gtc$Type == 'Account',]$Type2 <- 'asap_account'
+gtc[gtc$asap == 'prebook' & gtc$Type == 'G10',]$Type2 <- 'prebook_g10'
+gtc[gtc$asap == 'prebook' & gtc$Type == 'Account',]$Type2 <- 'prebook_account'
+## Performance
+
+# save all jobs not cleaned for performance purpose
+gtc2 <- gtc
+```
+
+
+
+```{r day and night shifts performance, echo=FALSE, message=FALSE,warning=FALSE}
+#Day defined as 6:30 to 18:29 
+#Night defined as 00:00 to 06:29 and 18:30 to 23:59
+gtc$shift <- 'NightShift'
+gtc[gtc$TimeInMin >= 390 & gtc$TimeInMin <= 1109,]$shift <- 'DayShift'
+```
+
+
+```{r echo=FALSE, message=FALSE,warning=FALSE}
+### Day shift (6:30 to 18:29). Job Volume  
+dayshift <- gtc[gtc$shift == 'DayShift',]
+ds<-nrow(dayshift)
+```
+
+
+```{r echo=FALSE, message=FALSE,warning=FALSE}
+### Night shift (00:00 to 06:29 and 18:30 to 23:59). Job Volume  
+nightshift <- gtc[gtc$shift == 'NightShift',]
+ns<-nrow(nightshift)
+```
+
+
+```{r echo=FALSE, message=FALSE,warning=FALSE}
+
+# extract first part of postcode
+library(reshape2)
+library(stringr)
+gtc_pc<- colsplit(string=gtc$PickUpPC, pattern=" ", names=c("GTCPart1", "GTCPart2"))
+
+gtc_pc$PC <- 'PC'
+
+pc <- c()
+
+for (each in gtc_pc$GTCPart1){
+  if (is.na(as.numeric(str_sub(each,-1,-1))))
+  {
+    x <- substr(each, 1, nchar(each)-1)
+    pc <- c(pc, x)
+   #print(x)
+  } else
+    pc <- c(pc, each)
+    #print(each)
+}
+
+gtc_pc$PC <- pc
+
+
+
+
+gtc$PC <- gtc_pc$PC
+
+
+
+
+
+# exclude airports
+match <- c('TW6', 'RH6', 'CM24', 'E16', 'LU2')
+gtc <- gtc[!(gtc$PC %in% match),]
+
+# exclude one transport
+gtc <- gtc[!(gtc$creationType %in% c(5,16)),]
+
+# exclude morgan stanley
+gtc <- gtc[(gtc$AccountNumber!='C6000'),]
+
+gtc <- gtc[!is.na(gtc$MinDiff),]
+```
+
+
+
+```{r echo= FALSE,fig.width=18, fig.height=10,warning=FALSE, message= FALSE}
+### Yesterday jobs on time in %%  
+
+#### MORE DETAILED ARRIVALS
+gtc$arrival_bucket <- '0'
+
+gtc[gtc$MinDiff > 20 ,]$arrival_bucket <- '20+ min late'
+
+gtc[gtc$MinDiff > 10 & gtc$MinDiff <= 20,]$arrival_bucket <- '10-20 min late'
+
+gtc[gtc$MinDiff > 5 & gtc$MinDiff <= 10,]$arrival_bucket <- '6-10 min late'
+
+gtc[gtc$MinDiff > 3 & gtc$MinDiff <= 5,]$arrival_bucket <- '4-5 min late'
+
+gtc[gtc$MinDiff >= 1 & gtc$MinDiff <= 3,]$arrival_bucket <- '1-3 min late'
+
+gtc[gtc$MinDiff == 0,]$arrival_bucket <- 'On time'
+
+gtc[gtc$MinDiff <= (-1) & gtc$MinDiff >= (-3),]$arrival_bucket <- '1-3 min early'
+
+gtc[gtc$MinDiff < (-3) & gtc$MinDiff >= (-5),]$arrival_bucket <- '4-5 min early'
+
+gtc[gtc$MinDiff < (-5) & gtc$MinDiff >= (-10),]$arrival_bucket <- '6-10 min early'
+
+gtc[gtc$MinDiff < (-10) & gtc$MinDiff >= (-20),]$arrival_bucket <- '10-20 min early'
+
+gtc[gtc$MinDiff < (-20) ,]$arrival_bucket <- '20+ min early'
+
+
+dayshift <- gtc[gtc$shift == 'DayShift',]
+nightshift <- gtc[gtc$shift == 'NightShift',]
+
+
+# calculate performance ontime
+performance_ontime<-gtc[gtc$arrival_bucket == '20+ min early'
+              |  gtc$arrival_bucket == '10-20 min early'
+              |  gtc$arrival_bucket == '6-10 min early'
+              |  gtc$arrival_bucket == '4-5 min early'
+              |  gtc$arrival_bucket == '1-3 min early'
+              |  gtc$arrival_bucket == 'On time',]
+
+
+# calculate total jobs per date and hour
+df_per_date <- group_by(gtc, Date, asap) %>%
+  summarise(JobTotal = sum(Count))
+
+df_performance_ontime <- group_by(performance_ontime, Date,asap) %>%
+  summarise(JobSum = sum(Count))
+df_performance_ontime <- merge(df_performance_ontime, df_per_date, by = c('Date','asap') )
+df_performance_ontime$Percent <- round((df_performance_ontime$JobSum / df_performance_ontime$JobTotal)*100,2)
+
+
+
+```
+
+
+```{r echo= FALSE,fig.width=18, fig.height=10,warning=FALSE, message= FALSE}
+### Day shift. Jobs on time in %%  
+
+# calculate performance ontime
+performance_ontime<-dayshift[dayshift$arrival_bucket == '20+ min early'
+              |  dayshift$arrival_bucket == '10-20 min early'
+              |  dayshift$arrival_bucket == '6-10 min early'
+              |  dayshift$arrival_bucket == '4-5 min early'
+              |  dayshift$arrival_bucket == '1-3 min early'
+              |  dayshift$arrival_bucket == 'On time',]
+
+
+# calculate total jobs per date and hour
+df_per_date <- group_by(dayshift, Date,asap) %>%
+  summarise(JobTotal = sum(Count))
+
+df_performance_DS_ontime <- group_by(performance_ontime, Date,asap) %>%
+  summarise(JobSum = sum(Count))
+df_performance_DS_ontime <- merge(df_performance_DS_ontime, df_per_date, by = c('Date','asap'))
+df_performance_DS_ontime$Percent <- round((df_performance_DS_ontime$JobSum / df_performance_DS_ontime$JobTotal)*100,2)
+
+
+```
+
+
+
+```{r echo= FALSE,fig.width=18, fig.height=10,warning=FALSE, message= FALSE}
+### Night shift. Jobs on time in %%  
+# calculate performance ontime
+performance_ontime<-nightshift[nightshift$arrival_bucket == '20+ min early'
+              |  nightshift$arrival_bucket == '10-20 min early'
+              |  nightshift$arrival_bucket == '6-10 min early'
+              |  nightshift$arrival_bucket == '4-5 min early'
+              |  nightshift$arrival_bucket == '1-3 min early'
+              |  nightshift$arrival_bucket == 'On time',]
+
+
+# calculate total jobs per date and hour
+df_per_date <- group_by(nightshift, Date,asap) %>%
+  summarise(JobTotal = sum(Count))
+
+df_performance_NS_ontime <- group_by(performance_ontime, Date,asap) %>%
+  summarise(JobSum = sum(Count))
+df_performance_NS_ontime <- merge(df_performance_NS_ontime, df_per_date, by = c('Date','asap') )
+df_performance_NS_ontime$Percent <- round((df_performance_NS_ontime$JobSum / df_performance_NS_ontime$JobTotal)*100,2)
+
+
+```
+
+
+```{r echo= FALSE,fig.width=18, fig.height=10,warning=FALSE, message= FALSE}
+### Yesterday jobs up to 3 min late in %% 
+## 3 min late
+
+# calculate performance ontime
+performance_3min<-gtc[gtc$arrival_bucket == '20+ min early'
+              |  gtc$arrival_bucket == '10-20 min early'
+              |  gtc$arrival_bucket == '6-10 min early'
+              |  gtc$arrival_bucket == '4-5 min early'
+              |  gtc$arrival_bucket == '1-3 min early'
+              |  gtc$arrival_bucket == 'On time'
+              |  gtc$arrival_bucket == '1-3 min late',]
+
+
+
+# calculate total jobs per date and hour
+df_per_date <- group_by(gtc, Date,asap) %>%
+  summarise(JobTotal = sum(Count))
+
+df_performance_3min <- group_by(performance_3min, Date,asap) %>%
+  summarise(JobSum = sum(Count))
+df_performance_3min <- merge(df_performance_3min, df_per_date, by = c('Date','asap') )
+df_performance_3min$Percent <- round((df_performance_3min$JobSum / df_performance_3min$JobTotal)*100,2)
+
+
+```
+
+
+
+```{r echo= FALSE,fig.width=18, fig.height=10,warning=FALSE, message= FALSE}
+### Day shift. Jobs up to 3 min late in %% 
+## 3 min late
+
+# calculate performance ontime
+performance_3min<-dayshift[dayshift$arrival_bucket == '20+ min early'
+              |  dayshift$arrival_bucket == '10-20 min early'
+              |  dayshift$arrival_bucket == '6-10 min early'
+              |  dayshift$arrival_bucket == '4-5 min early'
+              |  dayshift$arrival_bucket == '1-3 min early'
+              |  dayshift$arrival_bucket == 'On time'
+              |  dayshift$arrival_bucket == '1-3 min late',]
+
+
+
+# calculate total jobs per date and hour
+df_per_date <- group_by(dayshift, Date,asap) %>%
+  summarise(JobTotal = sum(Count))
+
+df_performance_DS_3min <- group_by(performance_3min, Date,asap) %>%
+  summarise(JobSum = sum(Count))
+df_performance_DS_3min <- merge(df_performance_DS_3min, df_per_date, by = c('Date','asap') )
+df_performance_DS_3min$Percent <- round((df_performance_DS_3min$JobSum / df_performance_DS_3min$JobTotal)*100,2)
+
+```
+
+
+
+```{r echo= FALSE,fig.width=18, fig.height=10,warning=FALSE, message= FALSE}
+### Night shift. Jobs up to 3 min late in %% 
+## 3 min late
+
+# calculate performance ontime
+performance_3min<-nightshift[nightshift$arrival_bucket == '20+ min early'
+              |  nightshift$arrival_bucket == '10-20 min early'
+              |  nightshift$arrival_bucket == '6-10 min early'
+              |  nightshift$arrival_bucket == '4-5 min early'
+              |  nightshift$arrival_bucket == '1-3 min early'
+              |  nightshift$arrival_bucket == 'On time'
+              |  nightshift$arrival_bucket == '1-3 min late',]
+
+
+
+# calculate total jobs per date and hour
+df_per_date <- group_by(nightshift, Date,asap) %>%
+  summarise(JobTotal = sum(Count))
+
+df_performance_NS_3min <- group_by(performance_3min, Date,asap) %>%
+  summarise(JobSum = sum(Count))
+df_performance_NS_3min <- merge(df_performance_NS_3min, df_per_date, by = c('Date','asap') )
+df_performance_NS_3min$Percent <- round((df_performance_NS_3min$JobSum / df_performance_NS_3min$JobTotal)*100,2)
+
+
+```
+
+
+##Daily performance statistics
+```{r echo= FALSE,fig.width=18, fig.height=10,warning=FALSE, message= FALSE}
+day<-c(ds,df_performance_DS_3min$Percent,df_performance_DS_ontime$Percent)
+night<-c(ns,df_performance_NS_3min$Percent,df_performance_NS_ontime$Percent)
+total<-c(nrow(gtc2),df_performance_3min$Percent,df_performance_ontime$Percent)
+
+tbl<-rbind(day,night,total)
+
+#colnames(tbl, do.NULL = TRUE, prefix = "")
+colnames(tbl) <- c("Jobs", "ASAPOnTime+3mins","PrebookOnTime+3mins","ASAPOnTime","PreBookOnTime")
+tbl
+
+#get terms for geckoboard AC search term
+dropbox<-total
+#colnames(dropbox) <- c("Jobs", "On Time+3mins %","On Time %")
+
+
+revenue<-group_by(gtc2,Type) %>% summarise(Jobs=sum(Count,na.rm=TRUE))
+dropbox<-c(xlToday,dropbox,revenue[1,2],revenue[2,2])
+
+#append this to forecast
+
+f1[rowNo,c(8:12)]<-dropbox[c(2:6)]
+
+```
+
+
+## Jobs, drivers and response time chart
+```{r echo= FALSE,fig.width=18, fig.height=10,warning=FALSE, message= FALSE}
+gtc$segment<-floor(gtc$TimeInMin/15)
+gtc$segment<-gtc$segment*3
+gtc_per_15min_all <- group_by(gtc, segment) %>% summarise(total = sum(Count))
+
+gtc_per_15min <- group_by(gtc, segment, Type2) %>% summarise(total = sum(Count))
+
+#doing the necesary work
+names(drivers) <- c('ID','Timestamp','VehicleType','OnlineDrivers')
+drivers$Service <- ''
+drivers$Service[drivers$VehicleType == 'Driver Direct'] <- 'Lite'
+drivers$Service[drivers$VehicleType != 'Driver Direct'] <- 'GTC'
+
+library(lubridate)
+#drivers$segment<-as.numeric(hour(drivers$Timestamp)*60 +minute(drivers$Timestamp))
+#drivers$segment<-floor(drivers$segment/15)
+
+#drivers_15min<-group_by(drivers, segment) %>% summarise(total = sum(Count))
+drivers_5minsum <- group_by(drivers,  Timestamp)
+drivers_5minsum <- summarise(drivers_5minsum , sum_drivers = sum(OnlineDrivers))
+#
+drivers_gtc<-drivers[drivers$Service=="GTC" ,]
+gtc_5minsum <- group_by(drivers_gtc,  Timestamp) %>%
+ summarise( sum_drivers = sum(OnlineDrivers))
+
+gtc_5minsum$segment<-as.numeric(hour(gtc_5minsum$Timestamp)*60 +minute(gtc_5minsum$Timestamp))
+gtc_5minsum$segment<-floor(gtc_5minsum$segment/5)
+
+
+drivers_5minsum$segment<-as.numeric(hour(drivers_5minsum$Timestamp)*60 +minute(drivers_5minsum$Timestamp))
+drivers_5minsum$segment<-floor(drivers_5minsum$segment/5)
+
+
+gtc_per_15min$Hour<-gtc_per_15min$segment*5/60
+gtc_per_15min_all$Hour<-gtc_per_15min_all$segment*5/60
+drivers_5minsum$Hour<-drivers_5minsum$segment*5/60
+gtc_5minsum$Hour<-gtc_5minsum$segment*5/60
+#gtc_per_15min$time2<-as.POSIXct(gtc_per_15min$time,format="%M",origin="BST")
+#now do the graph
+
+gtc_per_15min_all$total<-gtc_per_15min_all$total * 4
+#ResponseChart<-AvgResponseTime
+#ResponseChart$Hour<-ResponseChart$Hour + 0.5
+ResponseTime$segment<-ResponseTime$Hour *60 + ResponseTime$Minute
+ResponseTime$segment<-floor(ResponseTime$segment/5)
+
+ResponseChart<-group_by(ResponseTime,segment) %>% summarise(AvgResponseTime = mean(delay))
+ResponseChart$Hour = ResponseChart$segment * 5 / 60
+
+
+#Plot
+ ggplot(gtc_per_15min_all  ) +
+    geom_bar(aes(x = Hour , y = total ,fill = "tan2"),position = 'stack',stat="identity")  +
+    ggtitle('Job Volume, Online Drivers and Average Response Time') +
+    xlab('Hour') +
+    ylab('Hourly rate of jobs(bars) / GTC drivers(green), All drivers (red), response time(blue)') +
+    theme(text = element_text(size=16)) +
+   scale_y_continuous(breaks = seq(0,150,10))+
+   scale_x_continuous(breaks=seq(0,23.75,1))+
+   geom_line(data=drivers_5minsum,aes(x=Hour,y=sum_drivers),color ='green',size=1) +
+   geom_line(data= ResponseChart, aes(x=Hour ,y = AvgResponseTime),color = "blue",size =1)+
+      geom_line(data=gtc_5minsum,aes(x=Hour,y=sum_drivers),color ='red',size=1)+
+   theme_minimal() +
+   theme(panel.grid.major = element_line(colour = "grey",size = .6))
+   
+   
+```
+
+
+```{r echo= FALSE,fig.width=18, fig.height=10,warning=FALSE, message= FALSE}
+ # doing the necesary work
+names(drivers) <- c('ID','Timestamp','VehicleType','OnlineDrivers')
+drivers$Service <- ''
+drivers$Service[drivers$VehicleType == 'Driver Direct'] <- 'Lite'
+drivers$Service[drivers$VehicleType != 'Driver Direct'] <- 'GTC'
+
+drivers$Timestamp <- as.POSIXct(drivers$Timestamp)
+
+ # sum by GTC and GTLite for each 3 min
+drivers_sum <- group_by(drivers, Service, Timestamp)
+drivers_sum <- summarise(drivers_sum, sum_drivers = sum(OnlineDrivers))
+
+# keep date and only HOUR for grouping
+drivers_sum$Timestamp <- as.POSIXct(strptime(drivers_sum$Timestamp, "%Y-%m-%d %H"))
+
+drivers_per_hour <- group_by(drivers_sum, Timestamp, Service)
+drivers_per_hour <- summarise(drivers_per_hour, driver=round(mean(sum_drivers)))
+
+
+GTC <- drivers_per_hour[drivers_per_hour$Service == 'GTC',]
+Lite <- drivers_per_hour[drivers_per_hour$Service == 'Lite',]
+
+names(GTC)[3] <- 'GTC_drivers'
+names(Lite)[3] <- 'Lite_drivers'
+
+DRIVERS <- subset(merge(GTC, Lite, by = 'Timestamp', all = TRUE), select = c(Timestamp, GTC_drivers, Lite_drivers))
+
+DRIVERS$Hour <- seq(0,23,1)
+
+write.xlsx2(DRIVERS, file=filename, sheetName="Drivers",row.names = FALSE) 
+
+
+library(reshape2)
+DRIVERS <- melt(DRIVERS[c('Hour','GTC_drivers', 'Lite_drivers')], id = 'Hour')
+
+library(plyr)
+
+# calculate midpoints of bars (simplified using comment by @DWin)
+DRIVERS <- ddply(DRIVERS, .(Hour), 
+   transform, pos = cumsum(value) - (0.5 * value)
+)    
+
+detach("package:dplyr", unload = T)
+library(dplyr)
+
+
+#GTC Jobs working (but not the chart)
+file <- jobhistory
+yesterday <- as.Date(Sys.time()-(60*60*24))
+    
+
+file <- file[grepl(yesterday, file$TimeAccepted) |  grepl(yesterday, file$TimeArrived) | grepl(yesterday, file$TimePoB) | grepl(yesterday, file$TimeCompleted),]
+
+    
+# calculate time for each stage
+file['OnRouteToPickUp,min'] <- round(difftime(file$TimeArrived, file$TimeAccepted, units = "mins"),1)
+file['WaitingForPassenger,min'] <- round(difftime(file$TimePoB, file$TimeArrived, units = "mins"),1)
+file['Pob,min'] <- round(difftime(file$TimeCompleted, file$TimePoB, units = "mins"),1)
+
+# order by UserName, TimeAccepted to calulate 'Free' time for drivers between journeys
+library(plyr)
+ordered <- arrange(file, UserName, TimeArrived)
+ordered['Weekday'] <- weekdays(as.Date(ordered$jobDate))
+ordered$Weekday <- factor(ordered$Weekday,levels=c('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'))
+
+# create new column with class 'difftime' for calculation of Free driver time
+ordered['Free,min'] <- ordered$`Pob,min`
+
+with_free_time <- data.frame()
+
+for (driver in unique(ordered$UserName) ) {
+     onedriver <- ordered[ordered$UserName == driver,]
+     for (i in 1:(length(onedriver$id)-1) ) {
+       onedriver['Free,min'][1,] <- 0
+       onedriver['Free,min'][i,] <- round(difftime(onedriver$TimeAccepted[i+1], onedriver$TimeCompleted[i], units = "mins"),1)
+       onedriver['Free,min'][length(onedriver$id),] <- 0
+       } 
+with_free_time <- rbind(with_free_time, onedriver)
+    }
+
+#write back data clean from waiting time <= 0 and > 2 hours
+
+ordered <- with_free_time[with_free_time$`Free,min` > 0 & with_free_time$`Free,min` < 120,]
+
+
+# subset necessary data
+pickup <- subset(ordered, select = c(id, UserName, TimeAccepted,`OnRouteToPickUp,min`, Weekday))
+waiting <- subset(ordered, select = c(id, UserName, TimeArrived,`WaitingForPassenger,min`, Weekday))
+pob <- subset(ordered, select = c(id, UserName, TimePoB,`Pob,min`, Weekday))
+free <- subset(ordered, select = c(id, UserName, TimeCompleted,`Free,min`, Weekday))
+
+# add Hour column for each type of event
+pickup['Hour'] <- as.numeric(format(pickup$TimeAccepted, "%H"))
+waiting['Hour'] <- as.numeric(format(waiting$TimeArrived, "%H"))
+pob['Hour'] <- as.numeric(format(pob$TimePoB, "%H"))
+free['Hour'] <- as.numeric(format(free$TimeCompleted, "%H"))
+
+# add status column for plotting all the statuses in one plot
+pickup['Status'] <- 'PICK UP'
+waiting['Status'] <- 'WAITING FOR PASSENGER'
+pob['Status'] <- 'POB'
+free['Status'] <- 'FREE'
+
+
+# mean PICK UP
+mean_pickup <- group_by(pickup, Hour, Status) %>%
+  summarise(`mean_PickUp,min` = mean(`OnRouteToPickUp,min`) )
+names(mean_pickup) <- c('Hour', 'Status', 'mean')
+# mean WAITING
+mean_waiting <- group_by(waiting, Hour, Status) %>%
+  summarise(`mean_WaitingForPassenger,min` = mean(`WaitingForPassenger,min`))
+names(mean_waiting) <- c('Hour', 'Status', 'mean')
+
+# mean POB
+mean_pob <- group_by(pob, Hour, Status) %>%
+  summarise(`mean_Pob,min` = mean(`Pob,min`) )
+names(mean_pob) <- c('Hour', 'Status', 'mean')
+
+# mean Free
+mean_free <- group_by(free, Hour,  Status) %>%
+  summarise(`mean_Free,min` = mean(`Free,min`) )
+names(mean_free) <- c('Hour',  'Status', 'mean')
+
+# merge all statuses in one
+means <- rbind(mean_pickup, mean_waiting, mean_pob, mean_free)
+
+means$mean <- round( as.numeric(means$mean),0)
+
+means$Status <- factor(means$Status,levels=c('FREE', 'POB', 'WAITING FOR PASSENGER', 'PICK UP'))
+
+
+library(plyr)
+
+# calculate midpoints of bars (simplified using comment by @DWin)
+means <- ddply(means, .(Hour), 
+   transform, pos = cumsum(mean) - (0.5 * mean)
+)    
+
+detach("package:dplyr", unload = T)
+library(dplyr)
+
+
+gtc_per_hour <- group_by(gtc, Hour, Type2) %>% summarise(total = sum(Count))
+
+DRIVERS_ALL<-group_by(DRIVERS,Hour) %>% summarise(Drivers=sum(value))
+
+DRIVERS_ALL$Hour<-DRIVERS_ALL$Hour+1
+#gtc_per_hour_drivers<-c(gtc_per_hour,)
+
+
+
+#Removed in favor of 15 minute graph
+
+
+# ggplot(gtc_per_hour) +
+#    geom_bar(aes(x = Hour , y = total, fill = Type2 ),position = #'stack',stat="identity")  +
+#    ggtitle('Job Volume by Type and Online Drivers') +
+#    xlab('Hour') +
+#    ylab('Number of jobs(bars)/drivers(line)') +
+#    theme(text = element_text(size=16)) +
+ #  geom_line(data=DRIVERS_ALL,aes(x=Hour,y=Drivers),color ='green',size=1.5) 
+   
+ 
+```
+
+
+# Drivers worked yesterday
+
+```{r echo= FALSE,fig.width=18, fig.height=10,warning=FALSE, message= FALSE}
+
+    ggplot(DRIVERS, aes(x = Hour, y = value, fill = variable )) +
+    geom_bar(position = 'stack',stat="identity")  +
+    ggtitle('Drivers per hour') +
+    xlab('Hour') +
+    ylab('Driver Count') +
+    theme(text = element_text(size=16)) +
+    scale_x_continuous(breaks = seq(0,23,1), limit = c(-1,24)) +
+    scale_fill_brewer(palette="Set1") +
+    geom_text(aes(label = value, y = pos), size = 3)
+
+```
+
+#GTC JOBS  
+
+###Journey time analysis (excluding DD drivers)
+
+```{r echo= FALSE,fig.width=18, fig.height=10,warning=FALSE, message= FALSE}
+
+
+# by hour for each status
+    ggplot(means, aes(x = Hour, y = mean, fill = Status)) +
+    geom_bar(stat = 'identity', position = 'stack') +
+    scale_x_discrete(limit = seq(0,23,1), breaks = seq(0,23,1))+
+    ggtitle('Mean journey duration') +
+    ylab('Time in min') +
+    geom_text(aes(label = mean, y = pos), size = 3) +
+    theme(text = element_text(size=16))
+
+  
+
+write.xlsx2(means, file=filename, sheetName="JourneyTime", append = T,row.names = FALSE) 
+
+```
+
+
+
+
+
+
+### Data is cleaned from:
+
+* 2200 - Red Bee National
+* 6443 - BT Sports - Transport Captain
+* G1, G2, G3, G4, G5, G6, G7, G8, G9.1, G9.5, GTC888, G50, G51, G5555, 7002
+* LONGTC1387 (training jobs)
+
+
+```{r echo= FALSE,fig.width=18, fig.height=10,warning=FALSE, message= FALSE}
+
+# remove 
+#2200 - Red Bee National
+#6443 - BT Sports - Transport Captain
+#G1, G2, G3, G4, G5, G6, G7, G8, G9.1, G9.5, GTC888, G50, G51, G5555, 7002
+#LONGTC1387 (training jobs)
+
+```
+
+## Total number of bookings:  
+
+```{r echo=FALSE, message=FALSE,warning=FALSE}
+#store clened data to use later in performance
+gtc_cleaned <- gtc
+#bind back not cleaned data for job volume purpuses
+gtc <- gtc2
+asapgtc<-gtc2[(gtc2$asap=='asap'),]
+Pregtc<-gtc2[(gtc2$asap!='asap'),]
+asapG10<-gtc2[(gtc2$asap=='asap' & gtc2$AccountNumber=='G10'),]
+asapAcc<-gtc2[(gtc2$asap=='asap' & gtc2$AccountNumber!='G10'),]
+PreG10<-gtc2[(gtc2$asap!='asap' & gtc2$AccountNumber=='G10'),]
+PreAcc<-gtc2[(gtc2$asap!='asap' & gtc2$AccountNumber!='G10'),]
+
+tblJobs<-c(nrow(gtc),nrow(PreAcc),nrow(asapAcc),nrow(PreG10),nrow(asapG10))
+tblJobs <-rbind( c('All jobs','PreBooked Account','ASAP Account','Prebooked G10','ASAP G10'),tblJobs)
+
+tblJobs<-matrix(c(nrow(PreAcc),nrow(PreG10),nrow(Pregtc),
+           nrow(asapAcc),nrow(asapG10),nrow(asapgtc),
+           nrow(PreAcc)+nrow(asapAcc),nrow(PreG10)+nrow(asapG10),nrow(gtc2)),
+           ncol=3,byrow=TRUE)
+colnames(tblJobs)<-c('Account','G10','Total')
+rownames(tblJobs)<-c('PreBooked','ASAP','Total')
+tblJobs
+```
+
+### including flipped trips:  
+
+```{r echo=FALSE, message=FALSE,warning=FALSE}
+nrow(gtc[substr(gtc$Driver,1,2) == 'DD' & !is.na(gtc$Driver),])
+```
+
+
+
+## Job Volume by Type
+
+```{r echo= FALSE,fig.width=18, fig.height=10,warning=FALSE, message= FALSE}
+## Job Volume by Type
+gtc_per_hour <- group_by(gtc, Hour, Type2) %>% summarise(total = sum(Count))
+
+
+# ggplot(gtc_per_hour, aes(x = Hour , y = total, fill = Type2 )) +
+#    geom_bar(position = 'stack',stat="identity")  +
+#    ggtitle('Job Volume by Type') +
+#    xlab('Hour') +
+#    ylab('Number of jobs') +
+#    theme(text = element_text(size=16))
+
+write.xlsx2(as.data.frame(gtc_per_hour), file=filename, sheetName="VolumeByType", append = T,row.names = FALSE) 
+
+
+
+#Put it back to 15 minutes
+gtc_per_15min$total<-gtc_per_15min$total 
+
+
+# By 15 mins for each status
+ ggplot(gtc_per_15min  ) +
+    geom_bar(aes(x = Hour , y = total, fill = Type2 ),position = 'stack',stat="identity")  +
+    ggtitle('Job Volume by Type') +
+    xlab('Hour') +
+    ylab('Hourly rate of jobs(bars)/drivers(line)') +
+    theme(text = element_text(size=16)) +
+    scale_x_continuous(breaks=seq(0,23.75,1))
+
+
+# by hour for each status
+ #   ggplot(means, aes(x = Hour, y = mean, fill = Status)) +
+#    geom_bar(stat = 'identity', position = 'stack') +
+#    scale_x_discrete(limit = seq(0,23,1), breaks = seq(0,23,1))+
+#    ggtitle('Mean journey duration') +
+#    ylab('Time in min') +
+#    geom_text(aes(label = mean, y = pos), size = 3) +
+#    theme(text = element_text(size=16))
+
+#
+
+```
+
+
+
+
+
+
+```{r echo= FALSE,fig.width=18, fig.height=10,warning=FALSE, message= FALSE}
+
+gtc_per_vehicle <- group_by(gtc, Hour, VehicleType) %>% summarise(total = sum(Count))
+
+write.xlsx2(as.data.frame(gtc_per_vehicle), file=filename, sheetName="VolumeByVehicle", append = T,row.names = FALSE) 
+```
+
+
+
+
+
+## Performance
+
+
+### Data is cleaned from irrelevant accounts plus:
+
+* 'PickUpArea': All airport pickups (TW6, RH6, CM24, E16, LU2); 
+* Integrated Platform jobs - One Transport and Morgan Stanley (Oscar). 
+
+
+
+```{r echo= FALSE,fig.width=18, fig.height=10,warning=FALSE, message= FALSE}
+## clean data from :
+#All airport jobs (collecting from Heathrow, Gatwick, Luton, City and Stansted) #have been excluded e.g. PickUpArea = TW6, RH6, CM24, E16, LU2
+
+#All One T Jobs (specifically because their ASAP jobs are automatically late from #the point at which they are injected into our dispatch queue) have been excluded #e.g. Job creation type = One Transport
+
+#Remove Morgan Stanley (same logic applied to One Transport) e.g. Acc No = C6000 or #Acc Name = Morgan Stanley
+
+
+gtc <- gtc_cleaned
+
+
+```
+
+
+### Performance (on time / 3 min late)
+
+```{r echo= FALSE,fig.width=18, fig.height=10,warning=FALSE, message= FALSE}
+
+#### MORE DETAILED ARRIVALS
+gtc$arrival_bucket <- '0'
+
+gtc[gtc$MinDiff > 20 ,]$arrival_bucket <- '20+ min late'
+
+gtc[gtc$MinDiff > 10 & gtc$MinDiff <= 20,]$arrival_bucket <- '10-20 min late'
+
+gtc[gtc$MinDiff > 5 & gtc$MinDiff <= 10,]$arrival_bucket <- '6-10 min late'
+
+gtc[gtc$MinDiff > 3 & gtc$MinDiff <= 5,]$arrival_bucket <- '4-5 min late'
+
+gtc[gtc$MinDiff >= 1 & gtc$MinDiff <= 3,]$arrival_bucket <- '1-3 min late'
+
+gtc[gtc$MinDiff == 0,]$arrival_bucket <- 'On time'
+
+gtc[gtc$MinDiff <= (-1) & gtc$MinDiff >= (-3),]$arrival_bucket <- '1-3 min early'
+
+gtc[gtc$MinDiff < (-3) & gtc$MinDiff >= (-5),]$arrival_bucket <- '4-5 min early'
+
+gtc[gtc$MinDiff < (-5) & gtc$MinDiff >= (-10),]$arrival_bucket <- '6-10 min early'
+
+gtc[gtc$MinDiff < (-10) & gtc$MinDiff >= (-20),]$arrival_bucket <- '10-20 min early'
+
+gtc[gtc$MinDiff < (-20) ,]$arrival_bucket <- '20+ min early'
+
+```
+
+
+
+
+
+
+```{r echo= FALSE,fig.width=18, fig.height=10,warning=FALSE, message= FALSE}
+## 3 min late
+
+# '1-3 min early','On time', '1-3 min late', '4-5 min late', '6-10 min late', '10-20 min late', '20+ min late'
+
+
+# calculate performance ontime
+performance_3min<-gtc[gtc$arrival_bucket == '20+ min early'
+              |  gtc$arrival_bucket == '10-20 min early'
+              |  gtc$arrival_bucket == '6-10 min early'
+              |  gtc$arrival_bucket == '4-5 min early'
+              |  gtc$arrival_bucket == '1-3 min early'
+              |  gtc$arrival_bucket == 'On time'
+              |  gtc$arrival_bucket == '1-3 min late',]
+
+
+
+# calculate total jobs per date and hour
+df_per_date <- group_by(gtc, Date, Hour, Type) %>%
+  summarise(JobTotal = sum(Count))
+
+df_performance_3min <- group_by(performance_3min, Date, Weekday, Hour, Type) %>%
+  summarise(JobSum = sum(Count))
+df_performance_3min <- merge(df_performance_3min, df_per_date, by = c('Date','Hour', 'Type') )
+df_performance_3min$Percent <- round((df_performance_3min$JobSum / df_performance_3min$JobTotal)*100,2)
+
+
+
+
+df_performance_3min$Percent_bucket <- cut(
+  df_performance_3min$Percent, breaks = c(0,75,95,100)
+)
+
+
+
+
+ggplot(df_performance_3min, aes(x = Hour, y = Percent, fill = Percent_bucket)) +
+    geom_bar(position = 'stack', stat='identity') +
+    facet_wrap(~Type) +
+    ggtitle('Performance (inc. arrival 3 min late)') +
+    theme(text = element_text(size=16)) +
+    geom_text(aes(label = Percent), size = 4)
+
+
+
+```
+
+
+
+
+
+```{r echo= FALSE,fig.width=18, fig.height=10,warning=FALSE, message= FALSE}
+
+
+# make buckets for late and early arrivals
+
+gtc$arrival_bucket <- '0'
+
+gtc[gtc$MinDiff >= (-3) & gtc$MinDiff <= 3,]$arrival_bucket <- 'On time (-3,+3)'
+
+
+
+gtc[gtc$MinDiff > 3 & gtc$MinDiff <= 10,]$arrival_bucket <- '4-10 min late'
+gtc[gtc$MinDiff > 10 ,]$arrival_bucket <- '10+ min late'
+
+gtc[gtc$MinDiff < (-3) & gtc$MinDiff >= (-10),]$arrival_bucket <- '4-10 min early'
+gtc[gtc$MinDiff < (-10) & gtc$MinDiff >= (-30),]$arrival_bucket <- '10-30 min early'
+gtc[gtc$MinDiff < (-30) ,]$arrival_bucket <- '30+ min early'
+
+
+# calculate total jobs per date and hour
+df_per_date <- group_by(gtc, Type) %>%
+  summarise(JobTotal = sum(Count))
+
+# calculate performance ontime
+df_by_arrival <- group_by(gtc, arrival_bucket, Type) %>%
+  summarise(JobSum = sum(Count))
+
+
+df_by_arrival <- merge(df_by_arrival, df_per_date, by = c('Type') )
+df_by_arrival$Percent <- round((df_by_arrival$JobSum / df_by_arrival$JobTotal)*100,2)
+
+
+write.xlsx2(df_by_arrival, file=filename, sheetName="Arrivals", append = TRUE,row.names = FALSE)
+
+
+df_by_arrival$arrival_bucket <- factor(as.character(df_by_arrival$arrival_bucket),levels= rev(c('30+ min early','10-30 min early', '4-10 min early', 'On time (-3,+3)', '4-10 min late', '10+ min late')))
+```
+
+
+
+
+
+
+## Arrivals
+```{r echo= FALSE,fig.width=18, fig.height=10,warning=FALSE, message= FALSE}
+
+# calculate total jobs per date and ASAP
+df_per_date <- group_by(gtc, Type2) %>%
+  summarise(JobTotal = sum(Count))
+
+# calculate performance ontime
+df_by_arrival <- group_by(gtc, Type2, arrival_bucket) %>%
+  summarise(JobSum = sum(Count))
+
+
+df_by_arrival <- merge(df_by_arrival, df_per_date, by = c('Type2') )
+df_by_arrival$Percent <- round((df_by_arrival$JobSum / df_by_arrival$JobTotal)*100,2)
+
+
+write.xlsx2(df_by_arrival, file=filename, sheetName="ArrivalsASAP_PREBOOK", append=TRUE,row.names = FALSE)
+
+
+df_by_arrival$arrival_bucket <- factor(df_by_arrival$arrival_bucket,levels= rev(c('30+ min early','10-30 min early', '4-10 min early', 'On time (-3,+3)', '4-10 min late', '10+ min late')))
+
+df_by_arrival <- df_by_arrival[rev(order(df_by_arrival$arrival_bucket)),] 
+
+# plot for all arrival times
+
+#p <- 
+  ggplot(df_by_arrival, aes(x = Type2 , y = Percent, fill = arrival_bucket, group = arrival_bucket, order = -as.numeric(arrival_bucket))) +
+    geom_bar(position = 'stack', stat='identity') +
+    theme(text = element_text(size=20)) +
+    scale_y_continuous(breaks = seq(0,100,10))+
+  ggtitle('Arrivals in percents. ASAP and Prebook') +
+  xlab('Date') +
+  ylab('Percent of jobs')
+#ggsave(filename="Arrivals in percents. ASAP and Prebook.jpg", plot=p,height = 7, width = 14)
+
+```
+
+
+
+
+
+
+
+#Response Times
+```{r echo= FALSE,fig.width=18, fig.height=10,warning=FALSE, message= FALSE}
+ResponsePostCode<-group_by(ResponseTime,pickupAddress,Hour) %>% summarise(AvgResponseTime = mean(delay,na.rm=TRUE))
+
+AvgResponseTime<-group_by(ResponseTime,Hour)%>% summarise(AvgResponseTime = mean(delay,na.rm = TRUE),
+          ResponseTime75 = quantile(delay,.75,na.rm = TRUE),
+          ResponseTime25 = quantile(delay,.25,na.rm = TRUE)
+          )
+
+#AvgResponseTime
+
+write.xlsx2(AvgResponseTime, file=filename, sheetName="ResponseTimeHourly", append=TRUE)
+
+AvgResponseMelt<-melt(AvgResponseTime,id='Hour')
+
+E1<-ResponsePostCode[ResponsePostCode$pickupAddress=='E1 4DG',]
+E14<-ResponsePostCode[ResponsePostCode$pickupAddress=='E14 4AD',]
+WC1<-ResponsePostCode[ResponsePostCode$pickupAddress=='WC1X 8XZ',]
+EC2<-ResponsePostCode[ResponsePostCode$pickupAddress=='EC2M 7QH',]
+EC4<-ResponsePostCode[ResponsePostCode$pickupAddress=='EC4V 4EG',]
+W1<-ResponsePostCode[ResponsePostCode$pickupAddress=='W1F 9DJ',]
+SW1<-ResponsePostCode[ResponsePostCode$pickupAddress=='SW1P 1QW',]
+W2<-ResponsePostCode[ResponsePostCode$pickupAddress=='W2 1RH',]
+SE1<-ResponsePostCode[ResponsePostCode$pickupAddress=='SE1 0FD',]
+SW6<-ResponsePostCode[ResponsePostCode$pickupAddress=='SW6 5NH',]
+SW5<-ResponsePostCode[ResponsePostCode$pickupAddress=='SW5 0EU',]
+NW1<-ResponsePostCode[ResponsePostCode$pickupAddress=='NW1 2EF',]
+
+
+#Average Response Time
+
+ggplot(AvgResponseMelt,aes(x=Hour,y=value,color=variable))+
+  geom_line(size = 1)+  
+  scale_y_continuous(limit = c(0,90),breaks = c(0,10,20,30,40,50,60,70,80,90))+
+  scale_x_continuous(breaks = 0:23,limit = c(0,23))+   
+ xlab('Hour') +
+   ylab('minutes')
+
+
+
+ 
+#By Postcode
+  ggplot(ResponsePostCode, aes(x = Hour, y = AvgResponseTime )) +
+  geom_line(stat = 'identity',color='blue')  +
+  ggtitle('Response Time by Postcode') +
+  facet_wrap(~pickupAddress,ncol=3,shrink = FALSE)+ 
+  theme(strip.text.x=element_text(size=16, color = "Black"))+
+ # xlim(0,23)+
+  ylim(0,90)+
+  scale_x_continuous(breaks = 0:23,limit = c(0,23))
+
+#By Time Bucket
+ResponseTime$Period<-""
+ResponseTime[ResponseTime$Hour %in% c(6,7,8),]$Period<-"6-9_AMPeak"
+ResponseTime[ResponseTime$Hour %in% c(16,17),]$Period<-"16-18_PMPeak"
+ResponseTime[ResponseTime$Hour %in% c(22,23,0),]$Period<-"22-1_NightPeak"
+ResponseTime[ResponseTime$Hour %in% c(1,2,3,4,5),]$Period<-"1-6_Overnight"
+ResponseTime[ResponseTime$Hour %in% c(9,10,11,12,13,14,15),]$Period<-"9-16_Daytime"
+ResponseTime[ResponseTime$Hour %in% c(18,19,20,21),]$Period<-"18-22_Evening"
+
+ResponseTime$PeriodNumber<-0
+ResponseTime[ResponseTime$Hour %in% c(6,7,8),]$PeriodNumber<-1
+ResponseTime[ResponseTime$Hour %in% c(16,17),]$PeriodNumber<-3
+ResponseTime[ResponseTime$Hour %in% c(22,23,0),]$PeriodNumber<-5
+ResponseTime[ResponseTime$Hour %in% c(1,2,3,4,5),]$PeriodNumber<-6
+ResponseTime[ResponseTime$Hour %in% c(9,10,11,12,13,14,15),]$PeriodNumber<-2
+ResponseTime[ResponseTime$Hour %in% c(18,19,20,21),]$PeriodNumber<-4
+
+ResponseTimePeriod<-as.data.frame(group_by(ResponseTime,PeriodNumber,Period)%>% summarise(AvgResponseTime = mean(delay,na.rm=TRUE)))
+
+ResponseTimePeriod
+write.xlsx2(ResponseTimePeriod, file=filename, sheetName="ResponseTimePeriod", append=TRUE)
+```
+
+#Job Mileage and Dead Mileage
+This shows the dead miles and equivelant job miles. About 90% of jobs have dead miles recorded, the job miles for these are included. 
+Dead miles are the distance the driver must travel after being allocated the job, and does not include all empty running.
+```{r echo= FALSE,fig.width=18, fig.height=10,warning=FALSE, message= FALSE}
+DeadMiles2<-DeadMiles[!is.na(DeadMiles$distanceToPU),]
+DeadMiles2<-DeadMiles2[!is.na(DeadMiles2$actualDistance),]
+
+DeadMiles2$Hour<-as.numeric(format( as.POSIXct(DeadMiles2$`Allocated to driver`), "%H"))
+
+DeadMilesHour<-group_by(DeadMiles2,Hour) %>% summarise(DeadMiles = mean(distanceToPU))
+
+DeadMilesSum<-sum(DeadMiles2$distanceToPU,na.rm = TRUE)
+JobMilesSum<-sum(DeadMiles2$actualDistance,na.rm=TRUE)
+
+DeadMilesMean<-mean(DeadMiles2$distanceToPU,na.rm = TRUE)
+JobMilesMean<-mean(DeadMiles2$actualDistance,na.rm=TRUE)
+
+
+Ratio<-round(DeadMilesSum/(DeadMilesSum+JobMilesSum)*100,2)
+Ratio2<-round(DeadMilesMean/JobMilesMean*100,2)
+tbl2<-rbind(c("Mean Dead Miles","Mean Job Miles","Dead Mile %"),c(round(DeadMilesMean,2),round(JobMilesMean,2),Ratio))
+
+tbl2
+```
+
+#Driver Numbers
+```{r echo= FALSE,fig.width=18, fig.height=10,warning=FALSE, message= FALSE}
+#write todays stats to forecast
+#add to dropbox
+
+#Calc Driver and Lite driver numbers
+Drivers_24<-as.data.frame(unique(gtc2$Driver))
+Lite_24<-as.data.frame(Drivers_24[grepl('DD',Drivers_24$`unique(gtc2$Driver)`),])
+
+
+
+DriverCount<-nrow(Drivers_24)-nrow(Lite_24)
+LiteCount<-nrow(Lite_24)
+
+
+'GTC drivers who have completed 1 Job'
+DriverCount
+'Lite drivers who have completed 1 Job'
+LiteCount
+
+CRMCount<-nrow(CRMQuery)
+CRMRatio<-round(CRMCount/nrow(gtc2)*100,2)
+library(googlesheets)
+library(rdrop2)
+
+
+
+f1[rowNo,c(13:15)]<-c(DriverCount,LiteCount,CRMCount)
+
+
+write.xlsx2(f1,file=forecast,headers=TRUE,row.names=FALSE)
+rowStart<-rowNo-8
+lastweek<-f1[c(rowStart:rowNo),c(1:2,4:15)]
+lastweekName<-'forecast/LastWeek.xlsx'
+
+
+lw<-gs_title('lastweek2')
+gs_edit_cells(lw,ws=1,input=lastweek,anchor='A1')
+
+#DriversSheet<-gs_title('DailyDrivers')
+#DriversTable<-gs_read(DriversSheet)
+#DriversTable2<-DriversTable[2:8,]
+#DriversTable2<-rbind(DriversTable2,c(DriverCount,LiteCount,CRMCount ))
+
+
+#gs_edit_cells(DriversSheet,ws=1,input=DriversTable2,anchor='A1')
+
+```
+
+
+#Handbacks
+```{r echo= FALSE,fig.width=18, fig.height=10,warning=FALSE, message= FALSE}
+bookings$Count<-1
+bookings2<-bookings
+
+bookings$userName<-as.character(bookings$userName)
+bookings$userName.1<-as.character(bookings$userName.1)
+bookings$shortArg<-as.character(bookings$shortArg)
+bookings$shortArg.1<-as.character(bookings$shortArg.1)
+bookings$jobReference<-as.character(bookings$jobReference)
+
+bookings[is.na(bookings$userName),]$userName<-""
+bookings[is.na(bookings$userName.1),]$userName.1<-""
+bookings[is.na(bookings$jobReference),]$jobReference<-""
+bookings[is.na(bookings$actionDate),]$actionDate<-"1900-01-01"
+bookings[is.na(bookings$actionDate.1),]$actionDate.1<-"1900-01-01"
+bookings[is.na(bookings$shortArg),]$shortArg<-""
+bookings[is.na(bookings$shortArg.1),]$shortArg.1<-""
+
+
+
+#One Transport Section
+OneTBookings<-bookings[bookings$creationType ==5 & bookings$JobYear=="2016",]
+
+OneTBookings$result<-""
+OneTBookings[OneTBookings$jobStatus==7 ,"result"]<-"Complete"
+OneTBookings[OneTBookings$jobStatus==10 ,"result"]<-"COA"
+
+OneTBookings[OneTBookings$jobStatus==9 & OneTBookings$userName=="OneTransport" ,"result"]<-"CancelledUser"
+
+OneTBookings[(OneTBookings$jobStatus==9 & OneTBookings$userName!="OneTransport")  ,"result"]<-"Handback"
+
+
+
+
+#Cabfind
+
+CabfindBookings<-bookings[bookings$creationType ==18 & bookings$JobYear=="2016",]
+
+
+
+
+CabfindBookings$result<-""
+CabfindBookings[CabfindBookings$jobStatus==7 ,"result"]<-"Complete"
+CabfindBookings[CabfindBookings$jobStatus==10 ,"result"]<-"COA"
+
+CabfindBookings[CabfindBookings$jobStatus==9 & CabfindBookings$userName=="Cabfind","result"]<-"CancelledUser"
+
+CabfindBookings[(CabfindBookings$jobStatus==9 & CabfindBookings$userName!="Cabfind") ,"result"]<-"Handback"
+
+
+#Lets try a  morgan stanley one
+MSBookings<-bookings[bookings$creationType ==4 & bookings$JobYear=="2016",]
+
+MSBookings$result<-""
+MSBookings[MSBookings$jobStatus==7,"result"]<-"Complete"
+MSBookings[MSBookings$jobStatus==10 ,"result"]<-"COA"
+
+
+MSBookings[MSBookings$jobStatus==9 & MSBookings$userName=="Oscar" & MSBookings$shortArg.1 !="ON_HOLD","result"]<-"CancelledUser"
+
+MSBookings[(MSBookings$jobStatus==9 & MSBookings$userName!="Oscar" & MSBookings$shortArg.1 =="ON_HOLD")  ,"result"]<-"Handback"
+
+
+
+#Lets try a  Cityfleet
+CityFleetBookings<-bookings[bookings$creationType ==16 & bookings$JobYear=="2016",]
+
+CityFleetBookings$result<-""
+CityFleetBookings[CityFleetBookings$jobStatus==7 ,"result"]<-"Complete"
+CityFleetBookings[CityFleetBookings$jobStatus==10 ,"result"]<-"COA"
+
+
+CityFleetBookings[CityFleetBookings$jobStatus==9 & CityFleetBookings$userName=="Cityfleet" & CityFleetBookings$shortArg.1 !="ON_HOLD" ,"result"]<-"CancelledUser"
+
+CityFleetBookings[(CityFleetBookings$jobStatus==9 & CityFleetBookings$userName!="Oscar" & CityFleetBookings$shortArg.1 =="ON_HOLD")  ,"result"]<-"Handback"
+
+handbacks<-rbind(CityFleetBookings,MSBookings,OneTBookings,CabfindBookings)
+
+write.xlsx(handbacks,file= filename,sheetName = "Platforms",append = TRUE)
+
+handbacks2<-as.data.frame(group_by(handbacks,result) %>% summarise(total =sum(Count)))
+
+
+handbacks2$pct<-0
+handbacks2$pct<-round(handbacks2$total/sum(handbacks2$total)*100,2)
+handbacks2
+```
+
+
+
+```{r echo= FALSE,fig.width=18, fig.height=10,warning=FALSE, message= FALSE}
+#Collecting all the info for Cons spreadsheet.
+
+#portal jobs
+###################################################################
+
+
+#pre books by hour
+###################################################################
+
+
+#job allocation
+###################################################################
+auto<-gtc2[gtc2$AllocatedBy == "Echo AutoDispatcher" ,]
+c_auto<-nrow(auto)
+c_jobs<-nrow(gtc2)
+#inputA<-c_auto
+inputA<-c(c_auto,c_jobs-c_auto,c_jobs,round(c_auto/c_jobs*100,2))
+
+#handbacks by account
+###################################################################
+handbacks_platform<-handbacks[handbacks$result == "Handback",]
+handbacks_platform2<-group_by(handbacks,creationType, result)%>% summarise(total =sum(Count))
+
+handbacks_platform2<-handbacks_platform2[handbacks_platform2$result=="Handback",]
+
+handbacks_platform2$creationType<-as.character(handbacks_platform2$creationType)
+handbackSummary<-as.data.frame(as.character(c(18,16,4,5)))
+colnames(handbackSummary)<-"creationType"
+handbackSummary<-merge(handbackSummary,handbacks_platform2,by="creationType",all.x=TRUE )
+
+handbackSummary[is.na(handbackSummary$total),"total"]<-0
+
+#add handbacks to inputA
+inputA<-c(inputA,handbackSummary[,"total"])
+
+#Snapshots
+###################################################################
+
+#3am
+time<-as.POSIXct(yesterday+3/24)
+driversSnap<-drivers[drivers$Timestamp >= (time-180) & drivers$Timestamp <= (time+180),]
+
+LoggedOn<-sum(driversSnap$OnlineDrivers)
+LoggedOnGTC<-sum(driversSnap[driversSnap$Service =="GTC",]$OnlineDrivers)
+Avail<-LoggedOn-snapshot[1]
+
+inputA<-c(inputA,snapshot[1],snapshotASAP[1],LoggedOn,LoggedOnGTC,Avail)
+
+#8am
+time<-as.POSIXct(yesterday+8/24)
+driversSnap<-drivers[drivers$Timestamp >= (time-180) & drivers$Timestamp <= (time+180),]
+
+LoggedOn<-sum(driversSnap$OnlineDrivers)
+LoggedOnGTC<-sum(driversSnap[driversSnap$Service =="GTC",]$OnlineDrivers)
+Avail<-LoggedOn-snapshot[2]
+
+inputA<-c(inputA,snapshot[2],snapshotASAP[2],LoggedOn,LoggedOnGTC,Avail)
+
+#1pm
+time<-as.POSIXct(yesterday+13/24)
+driversSnap<-drivers[drivers$Timestamp >= (time-180) & drivers$Timestamp <= (time+180),]
+
+LoggedOn<-sum(driversSnap$OnlineDrivers)
+LoggedOnGTC<-sum(driversSnap[driversSnap$Service =="GTC",]$OnlineDrivers)
+Avail<-LoggedOn-snapshot[3]
+
+inputA<-c(inputA,snapshot[3],snapshotASAP[3],LoggedOn,LoggedOnGTC,Avail)
+
+
+#6pm
+time<-as.POSIXct(yesterday+18/24)
+driversSnap<-drivers[drivers$Timestamp >= (time-180) & drivers$Timestamp <= (time+180),]
+
+LoggedOn<-sum(driversSnap$OnlineDrivers)
+LoggedOnGTC<-sum(driversSnap[driversSnap$Service =="GTC",]$OnlineDrivers)
+Avail<-LoggedOn-snapshot[4]
+
+inputA<-c(inputA,snapshot[4],snapshotASAP[4],LoggedOn,LoggedOnGTC,Avail)
+
+
+#8pm
+time<-as.POSIXct(yesterday+20/24)
+driversSnap<-drivers[drivers$Timestamp >= (time-180) & drivers$Timestamp <= (time+180),]
+
+LoggedOn<-sum(driversSnap$OnlineDrivers)
+LoggedOnGTC<-sum(driversSnap[driversSnap$Service =="GTC",]$OnlineDrivers)
+Avail<-LoggedOn-snapshot[5]
+
+inputA<-c(inputA,snapshot[5],snapshotASAP[5],LoggedOn,LoggedOnGTC,Avail)
+
+#11pm
+time<-as.POSIXct(yesterday+23/24)
+driversSnap<-drivers[drivers$Timestamp >= (time-180) & drivers$Timestamp <= (time+180),]
+
+LoggedOn<-sum(driversSnap$OnlineDrivers)
+LoggedOnGTC<-sum(driversSnap[driversSnap$Service =="GTC",]$OnlineDrivers)
+Avail<-LoggedOn-snapshot[6]
+
+inputA<-c(inputA,snapshot[6],snapshotASAP[6],LoggedOn,LoggedOnGTC,Avail)
+
+
+
+#Agent performance
+###################################################################
+
+
+#Activity
+###################################################################
+inputA<-c(inputA,tblJobs["Total","G10"],tblJobs["Total","Account"],tblJobs["Total","Total"],DeadMilesSum,DeadMilesMean)
+
+
+
+#Avg Response Time
+###################################################################
+inputA<-c(inputA,ResponseTimePeriod[,"AvgResponseTime"])
+
+
+
+
+#On Time %
+###################################################################
+inputA<-c(inputA,tbl["total","PrebookOnTime+3mins"],
+                 tbl["total","ASAPOnTime+3mins"])
+
+inputA<-as.data.frame(inputA)
+colnames(inputA)<-c("autoAllocated",
+                    "ManualyAllocated",
+                    "TotalAllocated",
+                    "% AutoAllocated",
+                    "Cabfind HB",
+                    "CityFleet HB",
+                    "Morgan Stanley HB",
+                    "One Transport HB",
+                    "3AM Jobs",
+                    "3Am ASAP",
+                    "3AM FLEET",
+                    "3AM GTC",
+                    "3AM AVAILABLE",
+                    "8AM Jobs",
+                    "8Am ASAP",
+                    "8AM FLEET",
+                    "8AM GTC",
+                    "8AM AVAILABLE",
+                    "1PM Jobs",
+                    "1Pm ASAP",
+                    "1PM FLEET",
+                    "1PM GTC",
+                    "1PM AVAILABLE",
+                    "6PM Jobs",
+                    "6Pm ASAP",
+                    "6PM FLEET",
+                    "6PM GTC",
+                    "6PM AVAILABLE",
+                    "8PM Jobs",
+                    "8Pm ASAP",
+                    "8PM FLEET",
+                    "8PM GTC",
+                    "8PM AVAILABLE",
+                    "11PM Jobs",
+                    "11Pm ASAP",
+                    "11PM FLEET",
+                    "11PM GTC",
+                    "11PM AVAILABLE",
+                    "G10 JOBS",
+                    "ACCOUNT JOBS",
+                    "TOTAL JOBS",
+                   # "ASAP RATIO",
+                    "TOTAL DEAD MILES",
+                    "DEAD MILES / JOB",
+                    "RT 6-9",
+                    "RT 9-4",
+                    "RT 4-6",
+                    "RT 6-10",
+                    "RT 10-1",
+                    "RT 1-6",
+                    "PREBOOK ON TIME",
+                    "ASAP ON TIME"
+                  )
+#Write to excel
+###################################################################
+write.xlsx(inputA,file=filename,sheetName = "InputA",append = TRUE)
+```
