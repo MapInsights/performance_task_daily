@@ -14,8 +14,8 @@ library(dplyr)
 library(ggplot2)
 library(xlsx)
 library(rJava)
-setwd('C:/Users/daria.alekseeva/Documents/Analysis/cloned_repos/performance_task_daily')
-
+#setwd('C:/Users/daria.alekseeva/Documents/Analysis/cloned_repos/performance_task_daily')
+setwd('C:/Programs/gtc_tasks/performance_task_daily/')
 
 
 ```
