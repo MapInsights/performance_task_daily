@@ -1403,8 +1403,8 @@ lastweek<-f1[c(rowStart:rowNo),c(1:2,4:15)]
 lastweekName<-'forecast/LastWeek.xlsx'
 
 
-#lw<-gs_title('lastweek2')
-#gs_edit_cells(lw,ws=1,input=lastweek,anchor='A1')
+lw<-gs_title('lastweek2')
+gs_edit_cells(lw,ws=1,input=lastweek,anchor='A1')
 
 
 
