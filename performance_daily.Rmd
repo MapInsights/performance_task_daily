@@ -14,7 +14,7 @@ library(dplyr)
 library(ggplot2)
 library(xlsx)
 library(rJava)
-setwd('C:/Programs/gtc_tasks/performance_task_daily/')
+setwd('C:/Users/daria.alekseeva/Documents/Analysis/cloned_repos/performance_task_daily')
 
 
 
@@ -1272,6 +1272,7 @@ AvgResponseTime<-group_by(ResponseTime,Hour)%>% summarise(AvgResponseTime = mean
 
 write.xlsx2(AvgResponseTime, file=filename, sheetName="ResponseTimeHourly", append=TRUE)
 
+AvgResponseTime <- data.frame(AvgResponseTime)
 AvgResponseMelt<-melt(AvgResponseTime,id='Hour')
 
 E1<-ResponsePostCode[ResponsePostCode$pickupAddress=='E1 4DG',]
@@ -1396,6 +1397,8 @@ lastweekName<-'forecast/LastWeek.xlsx'
 
 lw<-gs_title('lastweek2')
 gs_edit_cells(lw,ws=1,input=lastweek,anchor='A1')
+
+
 
 #DriversSheet<-gs_title('DailyDrivers')
 #DriversTable<-gs_read(DriversSheet)
@@ -1604,6 +1607,107 @@ inputA<-c(inputA,snapshot[6],snapshotASAP[6],LoggedOn,LoggedOnGTC,Avail)
 
 #Agent performance
 ###################################################################
+# Call Center Part for Con's report (inputA)
+
+# connect to database
+odbcChannel <- odbcConnect('Zeacom',uid  ='snapshot', pwd='Z3ac0m1234')
+
+calls  <- sqlQuery( odbcChannel, 
+                    "
+declare @yesterdayFROM datetime
+declare @yesterdayTO datetime
+set @yesterdayFROM =DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111))
+set @yesterdayTO =DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111)) + '23:59:59'
+
+select *, DATEPART(hh, Time)*60 + DATEPART(mi, Time) 'TimeInMin'
+from ZeacomConfig..pn_audit_calls ac
+where ac.Date is not null
+and ac.Date between @yesterdayFROM and @yesterdayTO
+")
+odbcClose(odbcChannel)
+
+
+odbcChannel <- odbcConnect('Rstudio', uid='Daria Alekseeva', pwd='Welcome30')
+bookings  <- sqlQuery( odbcChannel, 
+                       "
+declare @yesterdayFROM datetime
+declare @yesterdayTO datetime
+set @yesterdayFROM = DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111))
+set @yesterdayTO = DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111)) + '23:59:59'
+
+select j.id, j.jobDate,j.creationDate, j.creationType, j.customer_account_id, DATEPART(hh, j.creationDate)*60 + DATEPART(mi, j.creationDate) 'TimeInMin'
+from Echo_core_prod..jobs j 
+where j.creationType=0  
+and j.creationDate between @yesterdayFROM and @yesterdayTO
+
+order by j.id
+")
+odbcClose(odbcChannel)
+
+# filter out outbound calls (type = O)
+Outbound<-calls[calls$Type=='O',]
+calls <- calls[calls$Type!='O',]
+
+# filter only driver line data using queues and A calls more that 10 seconds
+dl <- calls[calls$Queue %in% c('567') & (calls$Resolution == 'Q' | calls$Resolution == 'A' & calls$WaitTime > 10),]
+
+dl$CLID  <- as.character(dl$CLID)
+dl <- dl[!is.na(dl$Date),]
+dl$Count <- 1
+
+
+### Day shift (8am to 8pm)
+### Night shift (8pm to 8am) 
+### split cc
+dl[is.na(dl$RingTime),]$RingTime <- 0
+dl$shift <- 'NightShift'
+dl[dl$TimeInMin >= 480 & dl$TimeInMin <= 1199,]$shift <- 'DayShift'
+dayshiftDL <- dl[dl$shift == 'DayShift',]
+nightshiftDL <- dl[dl$shift == 'NightShift',]
+
+### split bookings
+
+#Get rid of the naughty bad bookings that make our stats go silly
+#these are:
+#great west house limited
+#Training
+#Memo account
+#GSK Coach overflow
+#Vehicle leasing - Insurance
+#Vehicle leasing - Rent
+
+unclean<-c("2085","4132","5294","6118","17331","17567")
+
+bookings<-bookings[!bookings$customer_account_id %in% unclean,]
+bookings$shift <- 'NightShift'
+bookings[bookings$TimeInMin >= 480 & bookings$TimeInMin <= 1199,]$shift <- 'DayShift'
+dayshiftB <- bookings[bookings$shift == 'DayShift',]
+nightshiftB <- bookings[bookings$shift == 'NightShift',]
+
+
+# total calls
+###########################################
+ds_dl<-nrow(dayshiftDL)
+ns_dl<-nrow(nightshiftDL)
+
+# Average Ring Time
+###########################################
+ds_avg_ring <- round(mean(dayshiftDL$RingTime),2)
+ns_avg_ring <- round(mean(nightshiftDL$RingTime),2)
+
+# Average Seconds to Answer	
+###########################################
+ds_asa <- round(mean(dayshiftDL$WaitTime),2)
+ns_asa <- round(mean(nightshiftDL$WaitTime),2)
+
+# Bookings Created	
+###########################################
+ds_b<-nrow(dayshiftB)
+ns_b<-nrow(nightshiftB)
+
+# create vector of driver line summary
+dl_summary <-c(ds_dl, ds_avg_ring, ds_asa, ds_b, 0, ns_dl, ns_avg_ring, ns_asa, ns_b, 0)
+inputA <- c(inputA, dl_summary)
 
 
 #Activity
@@ -1663,6 +1767,16 @@ colnames(inputA)<-c("autoAllocated",
                     "11PM FLEET",
                     "11PM GTC",
                     "11PM AVAILABLE",
+                    'DayTotalCalls',
+                    'DayAvgRingTime',
+                    'DayASA',
+                    'DayBookingsCreated',	
+                    'DayCalls:Hours',	
+                    'NightTotalCalls',
+                    'NightAvgRingTime',
+                    'NightASA',
+                    'NightBookingsCreated',	
+                    'NightCalls:Hours',	
                     "G10 JOBS",
                     "ACCOUNT JOBS",
                     "TOTAL JOBS",
