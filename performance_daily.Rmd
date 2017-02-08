@@ -16,7 +16,7 @@ library(xlsx)
 library(rJava)
 #setwd('C:/Users/daria.alekseeva/Documents/Analysis/cloned_repos/performance_task_daily')
 setwd('C:/Programs/gtc_tasks/performance_task_daily/')
-
+#setwd('D:/git/performance_task_daily/')
 
 ```
 
@@ -68,7 +68,7 @@ filename <- paste("spreadsheets/",filename,sep="")
 library(DBI)
 library(RODBC)
 # connect to database
-odbcChannel <- odbcConnect('Rstudio', uid='Daria Alekseeva', pwd='Welcome30')
+odbcChannel <- odbcConnect('echo_core', uid='Daria Alekseeva', pwd='Welcome30')
 
 # query for last day which is not in archive yet
 gtc  <- sqlQuery( odbcChannel, 
@@ -211,7 +211,7 @@ declare @TO datetime
 set @FROM = DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111))
 set @TO = DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111)) +'23:59:59'
 
-select ji.id 
+select ji.id , ji.customer_account_id
 from echo_core_prod..job_issues ji
 where creationDate between @FROM and @TO
 and category_id in (3,8,9,10,11,12,17,18,22)
@@ -1258,7 +1258,13 @@ df_by_arrival <- df_by_arrival[rev(order(df_by_arrival$arrival_bucket)),]
   xlab('Date') +
   ylab('Percent of jobs')
 #ggsave(filename="Arrivals in percents. ASAP and Prebook.jpg", plot=p,height = 7, width = 14)
+  
+accounts_arrival<-df_by_arrival[df_by_arrival$Type2 == "asap_account" | df_by_arrival$Type2 =="prebook_account",]
+accounts_arrival<-accounts_arrival[accounts_arrival$arrival_bucket %in% c('4-10 min late','10+ min late'),]
+accounts_arrivaltype<-group_by(accounts_arrival,Type2) %>% summarise(JobSum = sum(JobSum),
+                                                                     JobTotal=mean(JobTotal))
 
+accounts_arrivaltype$OnTimePct<-100-round(accounts_arrivaltype$JobSum/accounts_arrivaltype$JobTotal*100,2)
 ```
 
 
@@ -1387,21 +1393,34 @@ DriverCount
 'Lite drivers who have completed 1 Job'
 LiteCount
 
+
+
 CRMCount<-nrow(CRMQuery)
 CRMRatio<-round(CRMCount/nrow(gtc2)*100,2)
+
+CRM_Account<-CRMQuery[CRMQuery$customer_account_id != "3743",]
+CRMCountAccount<-nrow(CRM_Account)
+CRMRatioAccount<-round(CRMCountAccount/(nrow(PreAcc)+nrow(asapAcc))*100,2)
+
 library(googlesheets)
 library(rdrop2)
 
 
+accountPre<-accounts_arrivaltype[accounts_arrivaltype$Type2=="prebook_account","OnTimePct"]
+accountASAP<-accounts_arrivaltype[accounts_arrivaltype$Type2=="asap_account","OnTimePct"]
 
 f1[rowNo,c(13:15)]<-c(DriverCount,LiteCount,CRMCount)
+f1[rowNo,c(16:21)]<-c(day[1:3],night[1:3])
+f1[rowNo,c(22:25)]<-c(nrow(PreAcc)+nrow(asapAcc),CRMRatioAccount,accountPre,accountASAP)
 
 
 write.xlsx2(f1,file=forecast,headers=TRUE,row.names=FALSE)
 rowStart<-rowNo-8
-lastweek<-f1[c(rowStart:rowNo),c(1:2,4:15)]
+lastweek<-f1[c(rowStart:rowNo),c(1:2,4:25)]
 lastweekName<-'forecast/LastWeek.xlsx'
 
+#Remove NAs which Gecko doesn't like
+lastweek[is.na(lastweek)]<-0
 
 lw<-gs_title('lastweek2')
 gs_edit_cells(lw,ws=1,input=lastweek,anchor='A1')
