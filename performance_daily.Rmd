@@ -677,7 +677,7 @@ f1[rowNo,c(8:12)]<-dropbox[c(2:6)]
 
 
 ## Jobs, drivers and response time chart
-```{r echo= FALSE,fig.width=18, fig.height=10,warning=FALSE, message= FALSE}
+```{r echo= FALSE,fig.width=12, fig.height=8,warning=FALSE, message= FALSE}
 gtc$segment<-floor(gtc$TimeInMin/15)
 gtc$segment<-gtc$segment*3
 gtc_per_15min_all <- group_by(gtc, segment) %>% summarise(total = sum(Count))
@@ -725,7 +725,11 @@ ResponseTime$segment<-floor(ResponseTime$segment/5)
 
 ResponseChart<-group_by(ResponseTime,segment) %>% summarise(AvgResponseTime = mean(delay))
 ResponseChart$Hour = ResponseChart$segment * 5 / 60
+```
 
+
+
+```{r echo= FALSE,fig.width=12, fig.height=8,warning=FALSE, message= FALSE}
 
 #Plot
  ggplot(gtc_per_15min_all  ) +
@@ -733,7 +737,7 @@ ResponseChart$Hour = ResponseChart$segment * 5 / 60
     ggtitle('Job Volume, Online Drivers and Average Response Time') +
     xlab('Hour') +
     ylab('Hourly rate of jobs(bars) / GTC drivers(green), All drivers (red), response time(blue)') +
-    theme(text = element_text(size=16)) +
+    theme(text = element_text(size=10)) +
    scale_y_continuous(breaks = seq(0,150,10))+
    scale_x_continuous(breaks=seq(0,23.75,1))+
    geom_line(data=drivers_5minsum,aes(x=Hour,y=sum_drivers),color ='green',size=1) +
@@ -915,7 +919,7 @@ DRIVERS_ALL$Hour<-DRIVERS_ALL$Hour+1
 
 # Drivers worked yesterday
 
-```{r echo= FALSE,fig.width=18, fig.height=10,warning=FALSE, message= FALSE}
+```{r echo= FALSE,fig.width=12, fig.height=8,warning=FALSE, message= FALSE}
 
     ggplot(DRIVERS, aes(x = Hour, y = value, fill = variable )) +
     geom_bar(position = 'stack',stat="identity")  +
@@ -933,7 +937,7 @@ DRIVERS_ALL$Hour<-DRIVERS_ALL$Hour+1
 
 ###Journey time analysis (excluding DD drivers)
 
-```{r echo= FALSE,fig.width=18, fig.height=10,warning=FALSE, message= FALSE}
+```{r echo= FALSE,fig.width=12, fig.height=8,warning=FALSE, message= FALSE}
 
 
 # by hour for each status
@@ -1689,7 +1693,8 @@ dl$Count <- 1
 ### split cc
 dl[is.na(dl$RingTime),]$RingTime <- 0
 dl$shift <- 'NightShift'
-dl[dl$TimeInMin >= 480 & dl$TimeInMin <= 1199,]$shift <- 'DayShift'
+if (nrow(dl[dl$TimeInMin >= 480 & dl$TimeInMin <= 1199,])>0) {
+dl[dl$TimeInMin >= 480 & dl$TimeInMin <= 1199,]$shift <- 'DayShift'}
 dayshiftDL <- dl[dl$shift == 'DayShift',]
 nightshiftDL <- dl[dl$shift == 'NightShift',]
 
