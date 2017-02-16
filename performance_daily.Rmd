@@ -1,6 +1,8 @@
-# DAILY PERFORMANCE REPORT FOR...
+DAILY PERFORMANCE REPORT FOR...
+
 
 ```{r echo=FALSE}
+library(flexdashboard)
 start <- as.Date(Sys.time() - (60*60*24))
 start
 ```
@@ -14,6 +16,8 @@ library(dplyr)
 library(ggplot2)
 library(xlsx)
 library(rJava)
+library(plotly)
+library(flexdashboard)
 #setwd('C:/Users/daria.alekseeva/Documents/Analysis/cloned_repos/performance_task_daily')
 setwd('C:/Programs/gtc_tasks/performance_task_daily/')
 #setwd('D:/git/performance_task_daily/')
@@ -668,6 +672,8 @@ df_performance_NS_3min$Percent <- round((df_performance_NS_3min$JobSum / df_perf
 
 ```
 
+Row {data-height=400} 
+-------------------------------------
 
 ##Daily performance statistics
 ```{r echo= FALSE,fig.width=18, fig.height=10,warning=FALSE, message= FALSE}
@@ -1849,3 +1855,345 @@ colnames(inputA)<-c("autoAllocated",
 ###################################################################
 write.xlsx(inputA,file=filename,sheetName = "InputA",append = TRUE)
 ```
+
+
+# Driver line summary (queue 567)
+```{r echo= FALSE,fig.width=18, fig.height=8,warning=FALSE, message= FALSE}
+
+# connect to database
+odbcChannel <- odbcConnect('Zeacom',uid  ='snapshot', pwd='Z3ac0m1234')
+
+
+calls  <- sqlQuery( odbcChannel, 
+                    "
+declare @yesterdayFROM datetime
+declare @yesterdayTO datetime
+set @yesterdayFROM =DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111))
+set @yesterdayTO =DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111)) + '23:59:59'
+
+
+select *
+from ZeacomConfig..pn_audit_calls ac
+where ac.Date is not null
+and ac.Date between @yesterdayFROM and @yesterdayTO
+")
+
+odbcClose(odbcChannel)
+
+
+# filter out outbound calls (type = O)
+Outbound<-calls[calls$Type=='O',]
+cc <- calls[calls$Type!='O',]
+
+# filter only call centre data using queues and A calls more that 10 seconds
+cc <- calls[calls$Queue %in% c('567') & (calls$Resolution == 'Q' | calls$Resolution == 'A' & calls$WaitTime > 10),]
+
+cc$CLID  <- as.character(cc$CLID)
+#cc<- cc[substr(cc$CLID,1,1)=="+",]
+cc <- cc[!is.na(cc$Date),]
+cc$Date <- as.POSIXct(cc$Date)
+cc$Count <- 1
+cc$Hour <- substr(cc$Time,1,2)
+cc$Weekday <- weekdays(cc$Date)
+cc$Weekday <- factor(cc$Weekday,levels=c('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'))
+cc$DateTime <- as.POSIXct(paste(cc$Date, cc$Time))
+cc$DateTimeHalfHour <- as.POSIXlt(round((as.double(cc$DateTime)-900)/(30*60))*(30*60),origin=(as.POSIXlt('1970-01-01')))
+cc$Hour <- substr(cc$DateTimeHalfHour,12,16)
+cc$Hour <- as.character(cc$Hour)
+cc$DateTimeHalfHour<-0
+cc$Total <- 'Total'
+
+# add 'answered in 30 sec column'
+cc$ASAbelow30 <- 0
+cc[cc$WaitTime <=30 ,]$ASAbelow30 <- 1
+
+# Create factor 'Abd', 'Under30' , 'Over30'
+cc$Resolution_ <- 'Abd'
+cc[cc$Resolution == 'Q' & cc$WaitTime <= 30,]$Resolution_ <- 'Under30'
+cc[cc$Resolution == 'Q' & cc$WaitTime > 30,]$Resolution_ <- 'Over30'
+
+### Daily summary
+
+# calulate summaries of the day
+cc_sum <- group_by(cc, Queue) %>% summarise(A_Q = sum(Count), ASAbelow30 = sum(ASAbelow30), ASA = round(mean(WaitTime),1))
+
+# A and Q
+a_q <- as.data.frame(group_by(cc, Queue, Resolution) %>% summarise (total = sum(Count))) 
+a_q <- reshape(a_q, 
+  timevar = "Resolution",
+  idvar = "Queue",
+  direction = "wide")
+a_q[is.na(a_q)] <- 0 
+
+
+cc_sum_ <- merge(cc_sum, a_q)
+cc_sum_$`%answered` <- round(( cc_sum_$total.Q / (cc_sum_$total.Q + cc_sum_$total.A) ) *100, 1)
+cc_summary <- cc_sum_
+
+write.xlsx(cc_summary, file=filename, sheetName="summaryCalls", append = TRUE) 
+
+cc_summary
+
+# formattable(cc_summary, list(
+#   A_Q = color_tile("white", "green"),
+#   ASAbelow30 = color_tile("white", "green"),
+#   ASA = color_tile("white", "orange"),
+#   total.A = color_tile("white", "green"),
+#   total.Q = color_tile("white", "green"),
+#   `%answered` = color_tile("white", "pink")))
+  
+```
+
+
+### Calls answered within 30 sec
+
+```{r echo= FALSE,fig.width=18, fig.height=8,warning=FALSE, message= FALSE}
+
+cc30sec <- cc[cc$Resolution_ == 'Under30',]
+bb <-round(nrow(cc30sec)/cc_summary$A_Q*100,2)
+paste(bb,"%", " (Target is 90%)")
+
+write.xlsx(bb, file=filename, sheetName="CallsUnder30sec", append = TRUE) 
+
+
+# gauge(bb, min = 0, max = 100, symbol = '%', gaugeSectors(
+#   success = c(90, 100), warning = c(50, 89), danger = c(0, 49)
+# ))
+
+
+```
+
+### Percentage of calls answered within 10 sec
+
+```{r echo= FALSE,fig.width=18, fig.height=8,warning=FALSE, message= FALSE}
+cc10sec <- cc[cc$WaitTime <= 10,]
+yy <-round(nrow(cc10sec)/cc_summary$A_Q*100,2)
+paste(yy,"%", "  (Target is 85%)")
+
+write.xlsx(yy, file=filename, sheetName="CallsUnder10sec", append = TRUE) 
+
+
+# gauge(yy, min = 0, max = 100, symbol = '%', gaugeSectors(
+#   success = c(85, 100), warning = c(40, 84), danger = c(0, 39)
+# ))
+
+
+```
+
+
+### ASA
+
+```{r echo= FALSE,fig.width=18, fig.height=8,warning=FALSE, message= FALSE}
+asa_daily <- round(mean(cc$WaitTime),2)
+asa_daily
+
+# valueBox(asa_daily, 
+#          icon = "fa-comments",
+#          color = ifelse(asa_daily > 10, "warning", "primary"))
+```
+
+
+### average Ring Time
+
+```{r echo= FALSE,fig.width=18, fig.height=8,warning=FALSE, message= FALSE}
+if (nrow(cc[is.na(cc$RingTime),])>0 ) {
+cc[is.na(cc$RingTime),]$RingTime <- 0 }
+ART<-round(mean(cc$RingTime),2)
+
+ART
+
+# valueBox(ART, 
+#          icon = "fa-comments",
+#          color = ifelse(ART >2, "warning", "primary"))
+```
+
+
+
+### Median Handle Time 
+
+```{r echo= FALSE,fig.width=18, fig.height=8,warning=FALSE, message= FALSE}
+talk_ <- cc[cc$Resolution == 'Q',]
+if (nrow(talk_[is.na(talk_$TalkTime),]) >0) {
+talk_[is.na(talk_$TalkTime),]$TalkTime <- 0  }  
+
+AHT_daily<-round(mean(talk_$TalkTime),2)
+
+AHT_daily
+
+# valueBox(AHT_daily, 
+#          icon = "fa-comments",
+#          color = ifelse(AHT_daily > 140, "warning", "primary"))
+```
+
+
+
+### Abandoned, Over30, Under30 and ASA
+
+```{r echo= FALSE,fig.width=18, fig.height=8,warning=FALSE, message= FALSE}
+
+
+# asa each 1/2 hours
+asa_per_hour <- group_by(cc, Hour)  %>% 
+                                   summarise(asa = round(mean(WaitTime),1))
+asa_per_hour$Resolution_ <- 'asa'
+
+write.xlsx(asa_per_hour, file=filename, sheetName="asa", append = TRUE) 
+
+
+# volume per Half hour 30 sec and factor  'Abd', 'Under30' , 'Over30'
+volume_per_hour_Abd_UO30 <- as.data.frame(group_by(cc, Hour, Resolution_)  %>% 
+                                         summarise(call_sum = sum(Count)))
+
+write.xlsx(volume_per_hour_Abd_UO30, file=filename, sheetName="volume_per_hour_Abd_UO30", append = TRUE) 
+
+Palette22 <- c("#FF0000", "#000000", "#FFCC99","#3399FF")
+
+volume_per_hour_Abd_UO30$Resolution_ <- factor(volume_per_hour_Abd_UO30$Resolution_,levels= c('Abd', 'Over30', 'Under30'))
+
+ggplot(data = volume_per_hour_Abd_UO30, aes(x=Hour, y=call_sum,fill = Resolution_, group = Resolution_))+
+  geom_bar(position = 'stack', stat='identity') +
+  geom_line(data =asa_per_hour, aes(x = Hour, y = asa), color = 'black', size =1) +
+  ggtitle('') +
+  xlab('Hour') +
+  ylab('Number of Calls') + scale_fill_manual(values=Palette22) +
+  theme(axis.text.x = element_text(angle=45,size=7, hjust= 1),plot.title = element_text(size = 7))
+
+  #ggplotly()
+
+
+
+#### Q and A split of calls per 1/2 hour
+
+volume_per_hour <- as.data.frame(group_by(cc, Hour, Resolution)  %>% 
+                                   summarise(call_sum = sum(Count)))
+
+
+# let's add the number of agents who are available and taking calls per half an hour
+
+# calculate agent count
+ac <- group_by(cc, AgentID, Hour) %>% summarise(CallCount = sum(Count))
+ac <- ac[!is.na(ac$AgentID),]
+ac$Count <- 1
+ac <- group_by(ac, Hour) %>% summarise(AgentCount = sum(Count))
+ac$Resolution <- 'AgentLogon'
+
+write.xlsx(ac, file=filename, sheetName="AgentLogon", append = TRUE) 
+
+
+
+```
+
+
+
+
+
+### Answered and Abandoned Calls
+
+```{r echo= FALSE,fig.width=18, fig.height=8,warning=FALSE, message= FALSE}
+
+
+Palette2 <- c("#FF0000", "#3399FF")
+
+ggplot(volume_per_hour)+
+  geom_bar(aes(x=Hour, y=call_sum,fill = Resolution, group = Resolution ), position = 'stack', stat='identity') +
+  geom_line(data = ac, aes(x = Hour, y= AgentCount, group = Resolution), color = 'black', size = 1) +
+  ggtitle('black line: agent logon') +
+  xlab('Hour') +
+  ylab('Number of Calls') + scale_fill_manual(values=Palette2,
+                  name="Resolution",
+                  breaks=c("A","Q"),
+                  labels=c("Abandoned", "Answered")) +
+  theme(axis.text.x = element_text(angle=45,size=7, hjust= 1),plot.title = element_text(size = 7))
+
+  #ggplotly()
+
+
+
+# volume per half hour
+
+write.xlsx(volume_per_hour, file=filename, sheetName="VolumePerHalfHour", append = TRUE) 
+
+
+```
+
+
+
+
+
+### ASA 1/2 Hour (A + Q)
+
+```{r echo= FALSE,fig.width=18, fig.height=8,warning=FALSE, message= FALSE}
+
+ggplot(asa_per_hour, aes(x = Hour , y = asa)) +
+  geom_bar(position = 'dodge',stat="identity", fill = "#3399FF") +
+  ggtitle('') +
+  xlab('Hour') +
+  ylab('Seconds') +
+  theme(axis.text.x = element_text(angle=45,size=7, hjust= 1),plot.title = element_text(size = 7)) +  
+scale_colour_manual(name="Target",
+                  breaks=c("yintercept"),  
+                  values=c("yintercept=10"="red")) +
+  geom_hline(aes(yintercept=10), color = 'red')
+
+
+  #ggplotly()
+  
+  ###
+```
+
+
+### Average Ring Time Per Half Hour (A + Q)
+
+```{r echo= FALSE,fig.width=18, fig.height=8,warning=FALSE, message= FALSE}
+# ring time 
+ring <- group_by(cc, Hour)  %>% 
+  summarise(avg_ring = mean(RingTime), sd_ring = sd(RingTime))
+
+ggplot(ring, aes(x = Hour , y = avg_ring)) +
+  geom_bar(position = 'dodge',stat="identity", fill = "#3399FF") +
+  ggtitle('') +
+  xlab('Hour') +
+  ylab('Seconds') +  
+  theme(axis.text.x = element_text(angle=45,size=7, hjust= 1),plot.title = element_text(size = 7)) +
+  geom_hline(aes(yintercept=2), color = 'red')
+  
+
+  #ggplotly()
+
+
+write.xlsx(ring, file=filename, sheetName="AvgRing", append = TRUE) 
+###
+
+```
+
+
+
+### Median Handling Time 1/2 Hour (Q)
+
+```{r echo= FALSE,fig.width=18, fig.height=8,warning=FALSE, message= FALSE}
+###### handle time 
+
+
+talk <- group_by(talk_, Hour)  %>% 
+  summarise(avg_talk = mean(TalkTime), median_talk = median(TalkTime), sd_ring = sd(TalkTime))
+
+
+ggplot(talk, aes(x = Hour , y = median_talk)) +
+  geom_bar(position = 'dodge',stat="identity", fill = "#3399FF") +
+  ggtitle('') +
+  xlab('Hour') +
+  ylab('Seconds') +  
+  theme(axis.text.x = element_text(angle=45,size=7, hjust= 1),plot.title = element_text(size = 7))   #geom_hline(aes(yintercept=140), color = 'red')
+
+  #ggplotly()
+  
+  
+write.xlsx(talk, file=filename, sheetName="AvgTalk", append = TRUE) 
+###
+  
+```
+
+
+
+
+
