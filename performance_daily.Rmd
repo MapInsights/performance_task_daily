@@ -68,7 +68,9 @@ filename <- paste("spreadsheets/",filename,sep="")
 library(DBI)
 library(RODBC)
 # connect to database
-odbcChannel <- odbcConnect('echo_core', uid='Daria Alekseeva', pwd='Welcome30')
+#odbcChannel <- odbcConnect('echo_core', uid='Daria Alekseeva', pwd='Welcome30')
+odbcChannel <- odbcConnect('Rstudio', uid='Daria Alekseeva', pwd='Welcome30')
+
 
 # query for last day which is not in archive yet
 gtc  <- sqlQuery( odbcChannel, 
@@ -312,19 +314,26 @@ where --jh.shortArg = 'Cancelled'
 and j.jobStatus in (7,9,10)
 and j.jobDate between @yesterdayFROM and @yesterdayTO")
 
+odbcClose(odbcChannel)
+
+
+odbcChannel <- odbcConnect('echo_core', uid='Daria Alekseeva', pwd='Welcome30')
+
+
+
 snapshot<-sqlQuery( odbcChannel, "declare @yesterdayFROM datetime
 declare @yesterdayTO datetime
 set @yesterdayFROM = DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111))
 set @yesterdayTO = DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111)) + '23:59:59'
 select --distinct datepart(HOUR,j.jobdate) 'Hour',
-		count(DISTINCT (case when  datepart(hour,jt.actualAcceptTime) < '3' and datepart(hour,jt.actualPodTime) >= '3' then jt.job_Id else null end)) '3am',
-		count(DISTINCT (case when  datepart(hour,jt.actualAcceptTime) < '8' and datepart(hour,jt.actualPodTime) >= '8' then jt.job_Id else null end)) '8am',
-		count(DISTINCT (case when  datepart(hour,jt.actualAcceptTime) < '13' and datepart(hour,jt.actualPodTime) >= '13' then jt.job_Id else null end)) '1pm',
-		count(DISTINCT (case when  datepart(hour,jt.actualAcceptTime) < '18' and datepart(hour,jt.actualPodTime) >= '18' then jt.job_Id else null end)) '6pm',
-		count(DISTINCT (case when  datepart(hour,jt.actualAcceptTime) < '20' and datepart(hour,jt.actualPodTime) >= '20' then jt.job_Id else null end)) '8pm',
-		count(DISTINCT (case when  datepart(hour,jt.actualAcceptTime) < '23' and datepart(hour,jt.actualPodTime) >= '23' then jt.job_Id else null end)) '11pm'
+		count(DISTINCT (case when  datepart(hour,jt.actualAcceptTime) < '3' and datepart(hour,jt.actualPodTime) >= '3' then jt.id else null end)) '3am',
+		count(DISTINCT (case when  datepart(hour,jt.actualAcceptTime) < '8' and datepart(hour,jt.actualPodTime) >= '8' then jt.id else null end)) '8am',
+		count(DISTINCT (case when  datepart(hour,jt.actualAcceptTime) < '13' and datepart(hour,jt.actualPodTime) >= '13' then jt.id else null end)) '1pm',
+		count(DISTINCT (case when  datepart(hour,jt.actualAcceptTime) < '18' and datepart(hour,jt.actualPodTime) >= '18' then jt.id else null end)) '6pm',
+		count(DISTINCT (case when  datepart(hour,jt.actualAcceptTime) < '20' and datepart(hour,jt.actualPodTime) >= '20' then jt.id else null end)) '8pm',
+		count(DISTINCT (case when  datepart(hour,jt.actualAcceptTime) < '23' and datepart(hour,jt.actualPodTime) >= '23' then jt.id else null end)) '11pm'
 from echo_core_prod..job_times jt
-left join echo_core_prod..jobs j on j.id =jt.job_Id 
+left join echo_core_prod..jobs j on j.job_times_id =jt.id 
 where j.jobDate between @yesterdayFROM and @yesterdayTO")
 
 
@@ -333,14 +342,14 @@ declare @yesterdayTO datetime
 set @yesterdayFROM = DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111))
 set @yesterdayTO = DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111)) + '23:59:59'
 select --distinct datepart(HOUR,j.jobdate) 'Hour',
-		count(DISTINCT (case when  datepart(hour,jt.actualAcceptTime) < '3' and datepart(hour,jt.actualPodTime) >= '3' then jt.job_Id else null end)) '3am',
-		count(DISTINCT (case when  datepart(hour,jt.actualAcceptTime) < '8' and datepart(hour,jt.actualPodTime) >= '8' then jt.job_Id else null end)) '8am',
-		count(DISTINCT (case when  datepart(hour,jt.actualAcceptTime) < '13' and datepart(hour,jt.actualPodTime) >= '13' then jt.job_Id else null end)) '1pm',
-		count(DISTINCT (case when  datepart(hour,jt.actualAcceptTime) < '18' and datepart(hour,jt.actualPodTime) >= '18' then jt.job_Id else null end)) '6pm',
-		count(DISTINCT (case when  datepart(hour,jt.actualAcceptTime) < '20' and datepart(hour,jt.actualPodTime) >= '20' then jt.job_Id else null end)) '8pm',
-		count(DISTINCT (case when  datepart(hour,jt.actualAcceptTime) < '23' and datepart(hour,jt.actualPodTime) >= '23' then jt.job_Id else null end)) '11pm'
+		count(DISTINCT (case when  datepart(hour,jt.actualAcceptTime) < '3' and datepart(hour,jt.actualPodTime) >= '3' then jt.id else null end)) '3am',
+		count(DISTINCT (case when  datepart(hour,jt.actualAcceptTime) < '8' and datepart(hour,jt.actualPodTime) >= '8' then jt.id else null end)) '8am',
+		count(DISTINCT (case when  datepart(hour,jt.actualAcceptTime) < '13' and datepart(hour,jt.actualPodTime) >= '13' then jt.id else null end)) '1pm',
+		count(DISTINCT (case when  datepart(hour,jt.actualAcceptTime) < '18' and datepart(hour,jt.actualPodTime) >= '18' then jt.id else null end)) '6pm',
+		count(DISTINCT (case when  datepart(hour,jt.actualAcceptTime) < '20' and datepart(hour,jt.actualPodTime) >= '20' then jt.id else null end)) '8pm',
+		count(DISTINCT (case when  datepart(hour,jt.actualAcceptTime) < '23' and datepart(hour,jt.actualPodTime) >= '23' then jt.id else null end)) '11pm'
 from echo_core_prod..job_times jt
-left join echo_core_prod..jobs j on j.id =jt.job_Id 
+left join echo_core_prod..jobs j on j.job_times_id =jt.id 
 where j.jobDate between @yesterdayFROM and @yesterdayTO
 and j.asap = 1")
 
@@ -464,27 +473,38 @@ gtc <- gtc[!is.na(gtc$MinDiff),]
 #### MORE DETAILED ARRIVALS
 gtc$arrival_bucket <- '0'
 
-gtc[gtc$MinDiff > 20 ,]$arrival_bucket <- '20+ min late'
+if (nrow(gtc[gtc$MinDiff > 20 ,])>0) {
+gtc[gtc$MinDiff > 20 ,]$arrival_bucket <- '20+ min late'}
 
-gtc[gtc$MinDiff > 10 & gtc$MinDiff <= 20,]$arrival_bucket <- '10-20 min late'
+if (nrow(gtc[gtc$MinDiff > 10 & gtc$MinDiff <= 20,])>0) {
+gtc[gtc$MinDiff > 10 & gtc$MinDiff <= 20,]$arrival_bucket <- '10-20 min late'}
 
-gtc[gtc$MinDiff > 5 & gtc$MinDiff <= 10,]$arrival_bucket <- '6-10 min late'
+if (nrow(gtc[gtc$MinDiff > 5 & gtc$MinDiff <= 10,])>0) {
+gtc[gtc$MinDiff > 5 & gtc$MinDiff <= 10,]$arrival_bucket <- '6-10 min late'}
 
-gtc[gtc$MinDiff > 3 & gtc$MinDiff <= 5,]$arrival_bucket <- '4-5 min late'
+if (nrow(gtc[gtc$MinDiff > 5 & gtc$MinDiff <= 10,])>0) {
+gtc[gtc$MinDiff > 3 & gtc$MinDiff <= 5,]$arrival_bucket <- '4-5 min late'}
 
-gtc[gtc$MinDiff >= 1 & gtc$MinDiff <= 3,]$arrival_bucket <- '1-3 min late'
+if (nrow(gtc[gtc$MinDiff >= 1 & gtc$MinDiff <= 3,])>0) {
+gtc[gtc$MinDiff >= 1 & gtc$MinDiff <= 3,]$arrival_bucket <- '1-3 min late'}
 
-gtc[gtc$MinDiff == 0,]$arrival_bucket <- 'On time'
+if (nrow(gtc[gtc$MinDiff == 0,])>0 ) {
+gtc[gtc$MinDiff == 0,]$arrival_bucket <- 'On time'}
 
-gtc[gtc$MinDiff <= (-1) & gtc$MinDiff >= (-3),]$arrival_bucket <- '1-3 min early'
+if (nrow(gtc[gtc$MinDiff <= (-1) & gtc$MinDiff >= (-3),])>0) {
+gtc[gtc$MinDiff <= (-1) & gtc$MinDiff >= (-3),]$arrival_bucket <- '1-3 min early'}
 
-gtc[gtc$MinDiff < (-3) & gtc$MinDiff >= (-5),]$arrival_bucket <- '4-5 min early'
+if (nrow(gtc[gtc$MinDiff < (-3) & gtc$MinDiff >= (-5),])>0) {
+gtc[gtc$MinDiff < (-3) & gtc$MinDiff >= (-5),]$arrival_bucket <- '4-5 min early'}
 
-gtc[gtc$MinDiff < (-5) & gtc$MinDiff >= (-10),]$arrival_bucket <- '6-10 min early'
+if (nrow(gtc[gtc$MinDiff < (-5) & gtc$MinDiff >= (-10),])>0) {
+gtc[gtc$MinDiff < (-5) & gtc$MinDiff >= (-10),]$arrival_bucket <- '6-10 min early'}
 
-gtc[gtc$MinDiff < (-10) & gtc$MinDiff >= (-20),]$arrival_bucket <- '10-20 min early'
+if (nrow(gtc[gtc$MinDiff < (-10) & gtc$MinDiff >= (-20),])>0) {
+gtc[gtc$MinDiff < (-10) & gtc$MinDiff >= (-20),]$arrival_bucket <- '10-20 min early'}
 
-gtc[gtc$MinDiff < (-20) ,]$arrival_bucket <- '20+ min early'
+if (nrow(gtc[gtc$MinDiff < (-20) ,])>0) {
+gtc[gtc$MinDiff < (-20) ,]$arrival_bucket <- '20+ min early'}
 
 
 dayshift <- gtc[gtc$shift == 'DayShift',]
@@ -737,7 +757,7 @@ ResponseChart$Hour = ResponseChart$segment * 5 / 60
     ggtitle('Job Volume, Online Drivers and Average Response Time') +
     xlab('Hour') +
     ylab('Hourly rate of jobs(bars) / GTC drivers(green), All drivers (red), response time(blue)') +
-    theme(text = element_text(size=10)) +
+    theme(text = element_text(size=7)) +
    scale_y_continuous(breaks = seq(0,150,10))+
    scale_x_continuous(breaks=seq(0,23.75,1))+
    geom_line(data=drivers_5minsum,aes(x=Hour,y=sum_drivers),color ='green',size=1) +
