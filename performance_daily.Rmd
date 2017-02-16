@@ -308,7 +308,8 @@ select j.id, jh.userName, jh.actionDate,jh.shortArg, jh.jobReference,jh2.shortAr
 datepart(year,j.jobdate) 'JobYear',
 datepart(ISO_WEEK,j.jobdate) 'JobWeek',
 datepart(Month,j.jobdate) 'JobMonth',
-j.jobdate
+j.jobdate,
+DATEPART(hh, jh.actionDate)*60 + DATEPART(mi,jh.actionDate) 'TimeInMin'
 from echo_core_prod..jobs j
 left join (select * from Archive_Echo_Core_Prod..job_history union select * from Echo_Core_Prod..job_history)jh on j.id = jh.jobReference and jh.shortArg = 'Cancelled'
 left join (select * from Archive_Echo_Core_Prod..job_history union select * from Echo_Core_Prod..job_history)jh2 on j.id = jh2.jobReference and jh2.shortArg = 'ON_HOLD'
@@ -356,6 +357,66 @@ from echo_core_prod..job_times jt
 left join echo_core_prod..jobs j on j.job_times_id =jt.id 
 where j.jobDate between @yesterdayFROM and @yesterdayTO
 and j.asap = 1")
+
+
+
+portal<-sqlQuery( odbcChannel, 
+"
+declare @yesterdayFROM datetime
+declare @yesterdayTO datetime
+set @yesterdayFROM =DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111))
+set @yesterdayTO =DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111)) + '23:59:59'
+select
+    jh.jobReference as 'Job_number',
+    j.jobstatus as 'job status',
+    j.jobdate as 'Job date',
+    jh.userName as 'Who allocated',
+    jh.actionDate as 'when allocated',
+    c.name as 'callsign soft allocated driver',
+    c1.name as 'Callsign driver who completed this job',
+    ar.name as 'PostCodePU',
+    DATEPART(hh, j.jobDate)*60 + DATEPART(mi, j.jobDate) 'TimeInMin',
+	case when (DATEPART(hour, j.jobDate)*60 + DATEPART(mi, j.jobDate) >= 0 and DATEPART(hour, j.jobDate)*60 + DATEPART(mi, j.jobDate)< 360) then 'NightShift'
+	     when (DATEPART(hour, j.jobDate)*60 + DATEPART(mi, j.jobDate) >= 360 and DATEPART(hour, j.jobDate)*60 + DATEPART(mi, j.jobDate)< 1080) then 'DayShift'
+	     when (DATEPART(hour, j.jobDate)*60 + DATEPART(mi, j.jobDate) >= 1080) then 'NightShift' end 'Shift'
+from echo_core_prod..job_history  jh
+    left join echo_core_prod..drivers d on d.mobileId=CONVERT(varchar(max),jh.shortArg)
+    left join echo_core_prod..callsigns c on c.driver_id=d.employee_id
+    left join echo_core_prod..individuals i on i.id=d.employee_id
+    left join echo_core_prod..jobs j on j.id=jh.jobReference
+    left join echo_core_prod..drivers d1 on d1.employee_id=j.driver_id
+    left join echo_core_prod..callsigns c1 on c1.driver_id=d1.employee_id
+    left join echo_core_prod..job_stops js on js.job_id=jh.jobReference
+    left join echo_core_prod..addresses a on a.id=js.address_id
+    left join echo_core_prod..areas ar on ar.id=a.postcode_id
+where jh.actionType=19 and jh.userName=i.fullName and js.orderNumber=0 and j.jobDate between @yesterdayFROM and @yesterdayTO
+union
+select
+    jh.jobReference as 'Job_number',
+    j.jobstatus as 'job status',
+    j.jobdate as 'Job date',
+    jh.userName as 'Who allocated',
+    jh.actionDate as 'when allocated',
+    c.name as 'callsign soft allocated driver',
+    c1.name as 'Callsign driver who completed this job',
+    ar.name as 'PostCodePU',
+    DATEPART(hh, j.jobDate)*60 + DATEPART(mi, j.jobDate) 'TimeInMin',
+	case when (DATEPART(hour, j.jobDate)*60 + DATEPART(mi, j.jobDate) >= 0 and DATEPART(hour, j.jobDate)*60 + DATEPART(mi, j.jobDate)< 360) then 'NightShift'
+	     when (DATEPART(hour, j.jobDate)*60 + DATEPART(mi, j.jobDate) >= 360 and DATEPART(hour, j.jobDate)*60 + DATEPART(mi, j.jobDate)< 1080) then 'DayShift'
+	     when (DATEPART(hour, j.jobDate)*60 + DATEPART(mi, j.jobDate) >= 1080) then 'NightShift' end 'Shift'
+from Archive_echo_core_prod..job_history  jh
+    left join echo_core_prod..drivers d on d.mobileId=CONVERT(varchar(max),jh.shortArg)
+    left join echo_core_prod..callsigns c on c.driver_id=d.employee_id
+    left join echo_core_prod..individuals i on i.id=d.employee_id
+    left join echo_core_prod..jobs j on j.id=jh.jobReference
+    left join echo_core_prod..drivers d1 on d1.employee_id=j.driver_id
+    left join echo_core_prod..callsigns c1 on c1.driver_id=d1.employee_id
+    left join echo_core_prod..job_stops js on js.job_id=jh.jobReference
+    left join echo_core_prod..addresses a on a.id=js.address_id
+    left join echo_core_prod..areas ar on ar.id=a.postcode_id
+where jh.actionType=19 and jh.userName=i.fullName and js.orderNumber=0 and j.jobDate between @yesterdayFROM and @yesterdayTO
+
+")
 
 odbcClose(odbcChannel)
 
@@ -1565,7 +1626,10 @@ handbacks2
 
 #portal jobs
 ###################################################################
+portal$Count <- 1
+portal_sum <- group_by(portal, Shift) %>% summarise(total = sum(Count))
 
+inputA <- c(portal_sum[1,]$total, portal_sum[2,]$total)
 
 #pre books by hour
 ###################################################################
@@ -1577,20 +1641,30 @@ auto<-gtc2[gtc2$AllocatedBy == "Echo AutoDispatcher" ,]
 c_auto<-nrow(auto)
 c_jobs<-nrow(gtc2)
 #inputA<-c_auto
-inputA<-c(c_auto,c_jobs-c_auto,c_jobs,round(c_auto/c_jobs*100,2))
+inputA<-c(inputA, c_auto,c_jobs-c_auto,c_jobs,round(c_auto/c_jobs*100,2))
 
 #handbacks by account
 ###################################################################
 handbacks_platform<-handbacks[handbacks$result == "Handback",]
-handbacks_platform2<-group_by(handbacks,creationType, result)%>% summarise(total =sum(Count))
+
+###add shifts to handbacks
+handbacks$shift <- 'N'
+if (nrow(handbacks[handbacks$TimeInMin >= 360 & handbacks$TimeInMin <= 1079,])>0) 
+  {
+handbacks[handbacks$TimeInMin >= 360 & 
+            handbacks$TimeInMin <= 1079 &
+            handbacks$actionDate > '2000-01-01 00:00:00',]$shift <- 'D'
+}
+
+
+handbacks_platform2<-group_by(handbacks,creationType, result, shift)%>% summarise(total =sum(Count))
 
 handbacks_platform2<-handbacks_platform2[handbacks_platform2$result=="Handback",]
 
 handbacks_platform2$creationType<-as.character(handbacks_platform2$creationType)
-handbackSummary<-as.data.frame(as.character(c(18,16,4,5)))
-colnames(handbackSummary)<-"creationType"
-handbackSummary<-merge(handbackSummary,handbacks_platform2,by="creationType",all.x=TRUE )
-
+handbackSummary <- data.frame(creationType=c(18,16,4,5,18,16,4,5), shift = c('D','D','D','D', 'N','N','N','N'))
+handbackSummary<-merge(handbackSummary,handbacks_platform2,by=c("creationType", "shift"),all.x=TRUE )
+handbackSummary <- arrange(handbackSummary, -creationType)
 handbackSummary[is.na(handbackSummary$total),"total"]<-0
 
 #add handbacks to inputA
@@ -1706,6 +1780,9 @@ odbcClose(odbcChannel)
 Outbound<-calls[calls$Type=='O',]
 calls <- calls[calls$Type!='O',]
 
+#save calls to later build driver line report 
+calls2 <- calls
+
 # filter only driver line data using queues and A calls more that 10 seconds
 dl <- calls[calls$Queue %in% c('567') & (calls$Resolution == 'Q' | calls$Resolution == 'A' & calls$WaitTime > 10),]
 
@@ -1788,14 +1865,21 @@ inputA<-c(inputA,tbl["total","PrebookOnTime+3mins"],
                  tbl["total","ASAPOnTime+3mins"])
 
 inputA<-as.data.frame(inputA)
-colnames(inputA)<-c("autoAllocated",
+colnames(inputA)<-c(
+                    "portalDay",
+                    "portalNight",
+                    "autoAllocated",
                     "ManualyAllocated",
                     "TotalAllocated",
                     "% AutoAllocated",
-                    "Cabfind HB",
-                    "CityFleet HB",
-                    "Morgan Stanley HB",
-                    "One Transport HB",
+                    "Cabfind HB Day",
+                    "Cabfind HB Night",
+                    "CityFleet HB Day",
+                    "CityFleet HB Night",
+                    "One Transport HB Day",
+                    "One Transport HB Night",
+                    "Morgan Stanley HB Day",
+                    "Morgan Stanley HB Night",
                     "3AM Jobs",
                     "3Am ASAP",
                     "3AM FLEET",
@@ -1860,30 +1944,9 @@ write.xlsx(inputA,file=filename,sheetName = "InputA",append = TRUE)
 # Driver line summary (queue 567)
 ```{r echo= FALSE,fig.width=18, fig.height=8,warning=FALSE, message= FALSE}
 
-# connect to database
-odbcChannel <- odbcConnect('Zeacom',uid  ='snapshot', pwd='Z3ac0m1234')
 
-
-calls  <- sqlQuery( odbcChannel, 
-                    "
-declare @yesterdayFROM datetime
-declare @yesterdayTO datetime
-set @yesterdayFROM =DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111))
-set @yesterdayTO =DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111)) + '23:59:59'
-
-
-select *
-from ZeacomConfig..pn_audit_calls ac
-where ac.Date is not null
-and ac.Date between @yesterdayFROM and @yesterdayTO
-")
-
-odbcClose(odbcChannel)
-
-
-# filter out outbound calls (type = O)
-Outbound<-calls[calls$Type=='O',]
-cc <- calls[calls$Type!='O',]
+# used earlier saved calls
+calls <- calls2
 
 # filter only call centre data using queues and A calls more that 10 seconds
 cc <- calls[calls$Queue %in% c('567') & (calls$Resolution == 'Q' | calls$Resolution == 'A' & calls$WaitTime > 10),]
