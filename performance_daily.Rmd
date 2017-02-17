@@ -1,8 +1,19 @@
-DAILY PERFORMANCE REPORT FOR...
+---
+title: "Daily Performance Report"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    theme: flatly
+    source_code: https://github.com/GreenTomatoCars/performance_task_daily
+---
+
+
+
+Summary
+===========================================================
 
 
 ```{r echo=FALSE}
-library(flexdashboard)
 start <- as.Date(Sys.time() - (60*60*24))
 start
 ```
@@ -10,7 +21,8 @@ start
 
 ```{r echo=FALSE, message=FALSE,warning=FALSE}
 #gtc <- rbind(gtc, gtc1)
-
+library(flexdashboard)
+library(formattable)
 library(stringr)
 library(dplyr)
 library(ggplot2)
@@ -86,7 +98,7 @@ set @TO = DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111)) +'23:59:59'
 select j.id, ca.number as 'AccountNumber', ca.name as 'AccountName', cg.name as 'Grade', j.jobDate, jh.actionDate as 'ArrivalTime',
 DATEDIFF(minute, j.jobDate, jh.actionDate) as 'MinDiff',
 c.name as 'Driver',
-isnull(vt.name, 'Partners') as 'VehicleType',
+isnull(vt.name, 'Partners') as 'VehicleType', s.name,
 adr.name as 'PickUpPC',
 j.asap,
 j.jobStatus,
@@ -128,6 +140,7 @@ LEFT JOIN
  on adr.id = st.address_id where st.orderNumber = 0) adr
  on j.id = adr.job_id
 Left Join Echo_core_prod..vehicles v on j.vehicle_id=v.id Left join Echo_core_prod..models m on v.model_id=m.id Left join Echo_core_prod..vehicle_types vt on m.vehicle_type_id=vt.id
+left join Echo_core_prod..services s on j.service_id = s.id
 where j.jobstatus in (7,10) 
 and j.creationtype not in (9,10,11,12)
 and j.jobDate between @FROM and @TO
@@ -427,7 +440,7 @@ odbcClose(odbcChannel)
 
 
 
-```{r echo=FALSE, message=FALSE,warning=FALSE}
+```{r}
 match <- c('2200', '6443', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7', 'G8', 'G9.1', 'G9.5', 'GTC888', 'G50', 'G51', 'G5555', '7002', 'LONGTC1387')
 
 gtc <- gtc[!(gtc$AccountNumber %in% match),]
@@ -462,7 +475,7 @@ gtc2 <- gtc
 
 
 
-```{r day and night shifts performance, echo=FALSE, message=FALSE,warning=FALSE}
+```{r}
 #Day defined as 6:30 to 18:29 
 #Night defined as 00:00 to 06:29 and 18:30 to 23:59
 gtc$shift <- 'NightShift'
@@ -470,22 +483,21 @@ gtc[gtc$TimeInMin >= 390 & gtc$TimeInMin <= 1109,]$shift <- 'DayShift'
 ```
 
 
-```{r echo=FALSE, message=FALSE,warning=FALSE}
+```{r}
 ### Day shift (6:30 to 18:29). Job Volume  
 dayshift <- gtc[gtc$shift == 'DayShift',]
 ds<-nrow(dayshift)
 ```
 
 
-```{r echo=FALSE, message=FALSE,warning=FALSE}
+```{r}
 ### Night shift (00:00 to 06:29 and 18:30 to 23:59). Job Volume  
 nightshift <- gtc[gtc$shift == 'NightShift',]
 ns<-nrow(nightshift)
 ```
 
 
-```{r echo=FALSE, message=FALSE,warning=FALSE}
-
+```{r}
 # extract first part of postcode
 library(reshape2)
 library(stringr)
@@ -532,7 +544,7 @@ gtc <- gtc[!is.na(gtc$MinDiff),]
 
 
 
-```{r echo= FALSE,fig.width=18, fig.height=10,warning=FALSE, message= FALSE}
+```{r }
 ### Yesterday jobs on time in %%  
 
 #### MORE DETAILED ARRIVALS
@@ -599,7 +611,7 @@ df_performance_ontime$Percent <- round((df_performance_ontime$JobSum / df_perfor
 ```
 
 
-```{r echo= FALSE,fig.width=18, fig.height=10,warning=FALSE, message= FALSE}
+```{r }
 ### Day shift. Jobs on time in %%  
 
 # calculate performance ontime
@@ -625,7 +637,7 @@ df_performance_DS_ontime$Percent <- round((df_performance_DS_ontime$JobSum / df_
 
 
 
-```{r echo= FALSE,fig.width=18, fig.height=10,warning=FALSE, message= FALSE}
+```{r }
 ### Night shift. Jobs on time in %%  
 # calculate performance ontime
 performance_ontime<-nightshift[nightshift$arrival_bucket == '20+ min early'
@@ -649,7 +661,7 @@ df_performance_NS_ontime$Percent <- round((df_performance_NS_ontime$JobSum / df_
 ```
 
 
-```{r echo= FALSE,fig.width=18, fig.height=10,warning=FALSE, message= FALSE}
+```{r }
 ### Yesterday jobs up to 3 min late in %% 
 ## 3 min late
 
@@ -661,6 +673,17 @@ performance_3min<-gtc[gtc$arrival_bucket == '20+ min early'
               |  gtc$arrival_bucket == '1-3 min early'
               |  gtc$arrival_bucket == 'On time'
               |  gtc$arrival_bucket == '1-3 min late',]
+
+
+# calculater overhall performance and per shift
+df_per_date <- group_by(gtc, Date,shift) %>%
+  summarise(JobTotal = sum(Count))
+df_performance_3min <- group_by(performance_3min, Date,shift) %>%
+  summarise(JobSum = sum(Count))
+df_performance_3min <- merge(df_performance_3min, df_per_date, by = c('Date','shift') )
+df_performance_3min$Percent <- round((df_performance_3min$JobSum / df_performance_3min$JobTotal)*100,2)
+# save table to use in inputA
+perf_all <- df_performance_3min
 
 
 
@@ -678,7 +701,7 @@ df_performance_3min$Percent <- round((df_performance_3min$JobSum / df_performanc
 
 
 
-```{r echo= FALSE,fig.width=18, fig.height=10,warning=FALSE, message= FALSE}
+```{r }
 ### Day shift. Jobs up to 3 min late in %% 
 ## 3 min late
 
@@ -702,11 +725,12 @@ df_performance_DS_3min <- group_by(performance_3min, Date,asap) %>%
 df_performance_DS_3min <- merge(df_performance_DS_3min, df_per_date, by = c('Date','asap') )
 df_performance_DS_3min$Percent <- round((df_performance_DS_3min$JobSum / df_performance_DS_3min$JobTotal)*100,2)
 
+
 ```
 
 
 
-```{r echo= FALSE,fig.width=18, fig.height=10,warning=FALSE, message= FALSE}
+```{r }
 ### Night shift. Jobs up to 3 min late in %% 
 ## 3 min late
 
@@ -730,14 +754,15 @@ df_performance_NS_3min <- group_by(performance_3min, Date,asap) %>%
 df_performance_NS_3min <- merge(df_performance_NS_3min, df_per_date, by = c('Date','asap') )
 df_performance_NS_3min$Percent <- round((df_performance_NS_3min$JobSum / df_performance_NS_3min$JobTotal)*100,2)
 
-
 ```
 
-Row {data-height=400} 
+
+Row {data-height=300} 
 -------------------------------------
 
-##Daily performance statistics
-```{r echo= FALSE,fig.width=18, fig.height=10,warning=FALSE, message= FALSE}
+###Daily performance statistics
+
+```{r }
 day<-c(ds,df_performance_DS_3min$Percent,df_performance_DS_ontime$Percent)
 night<-c(ns,df_performance_NS_3min$Percent,df_performance_NS_ontime$Percent)
 total<-c(nrow(gtc2),df_performance_3min$Percent,df_performance_ontime$Percent)
@@ -746,7 +771,15 @@ tbl<-rbind(day,night,total)
 
 #colnames(tbl, do.NULL = TRUE, prefix = "")
 colnames(tbl) <- c("Jobs", "ASAPOnTime+3mins","PrebookOnTime+3mins","ASAPOnTime","PreBookOnTime")
-tbl
+tbl_ <- as.data.frame(tbl)
+
+formattable(tbl_, list(
+  Jobs = color_tile("white", "green"),
+  `ASAPOnTime+3mins` = color_tile("white", "orange"),
+  `PrebookOnTime+3mins` = color_tile("white", "orange"),
+  ASAPOnTime= color_tile("white", "orange"),
+  PreBookOnTime = color_tile("white", "orange")))
+
 
 #get terms for geckoboard AC search term
 dropbox<-total
@@ -763,8 +796,11 @@ f1[rowNo,c(8:12)]<-dropbox[c(2:6)]
 ```
 
 
-## Jobs, drivers and response time chart
-```{r echo= FALSE,fig.width=12, fig.height=8,warning=FALSE, message= FALSE}
+Row {data-height=700}
+-------------------------------------
+
+### Jobs, drivers and response time chart
+```{r }
 gtc$segment<-floor(gtc$TimeInMin/15)
 gtc$segment<-gtc$segment*3
 gtc_per_15min_all <- group_by(gtc, segment) %>% summarise(total = sum(Count))
@@ -812,32 +848,29 @@ ResponseTime$segment<-floor(ResponseTime$segment/5)
 
 ResponseChart<-group_by(ResponseTime,segment) %>% summarise(AvgResponseTime = mean(delay))
 ResponseChart$Hour = ResponseChart$segment * 5 / 60
-```
 
-
-
-```{r echo= FALSE,fig.width=12, fig.height=8,warning=FALSE, message= FALSE}
 
 #Plot
  ggplot(gtc_per_15min_all  ) +
-    geom_bar(aes(x = Hour , y = total ,fill = "tan2"),position = 'stack',stat="identity")  +
-    ggtitle('Job Volume, Online Drivers and Average Response Time') +
+    geom_bar(aes(x = Hour , y = total ), fill = 'pink',position = 'stack',stat="identity")  +
+    ggtitle('Hourly rate of jobs(bars) / GTC drivers(green), All drivers (red), response time(blue)') +
     xlab('Hour') +
-    ylab('Hourly rate of jobs(bars) / GTC drivers(green), All drivers (red), response time(blue)') +
+    ylab('') +
     theme(text = element_text(size=7)) +
    scale_y_continuous(breaks = seq(0,150,10))+
    scale_x_continuous(breaks=seq(0,23.75,1))+
-   geom_line(data=drivers_5minsum,aes(x=Hour,y=sum_drivers),color ='green',size=1) +
+   geom_line(data=drivers_5minsum,aes(x=Hour,y=sum_drivers),color ='red',size=1) +
    geom_line(data= ResponseChart, aes(x=Hour ,y = AvgResponseTime),color = "blue",size =1)+
-      geom_line(data=gtc_5minsum,aes(x=Hour,y=sum_drivers),color ='red',size=1)+
-   theme_minimal() +
-   theme(panel.grid.major = element_line(colour = "grey",size = .6))
+      geom_line(data=gtc_5minsum,aes(x=Hour,y=sum_drivers),color ='green',size=1)+
+   theme_minimal() #+
+   #theme(panel.grid.major = element_line(colour = "grey",size = .6))
    
+   ggplotly()
    
 ```
 
 
-```{r echo= FALSE,fig.width=18, fig.height=10,warning=FALSE, message= FALSE}
+```{r }
  # doing the necesary work
 names(drivers) <- c('ID','Timestamp','VehicleType','OnlineDrivers')
 drivers$Service <- ''
@@ -1004,7 +1037,13 @@ DRIVERS_ALL$Hour<-DRIVERS_ALL$Hour+1
 ```
 
 
-# Drivers worked yesterday
+Drivers & Journeys
+===========================================================
+
+Row 
+-------------------------------------
+
+### Drivers worked yesterday
 
 ```{r echo= FALSE,fig.width=12, fig.height=8,warning=FALSE, message= FALSE}
 
@@ -1012,7 +1051,7 @@ DRIVERS_ALL$Hour<-DRIVERS_ALL$Hour+1
     geom_bar(position = 'stack',stat="identity")  +
     ggtitle('Drivers per hour') +
     xlab('Hour') +
-    ylab('Driver Count') +
+    ylab('') +
     theme(text = element_text(size=16)) +
     scale_x_continuous(breaks = seq(0,23,1), limit = c(-1,24)) +
     scale_fill_brewer(palette="Set1") +
@@ -1020,7 +1059,9 @@ DRIVERS_ALL$Hour<-DRIVERS_ALL$Hour+1
 
 ```
 
-#GTC JOBS  
+
+
+
 
 ###Journey time analysis (excluding DD drivers)
 
@@ -1031,12 +1072,12 @@ DRIVERS_ALL$Hour<-DRIVERS_ALL$Hour+1
     ggplot(means, aes(x = Hour, y = mean, fill = Status)) +
     geom_bar(stat = 'identity', position = 'stack') +
     scale_x_discrete(limit = seq(0,23,1), breaks = seq(0,23,1))+
-    ggtitle('Mean journey duration') +
+    ggtitle('') +
     ylab('Time in min') +
     geom_text(aes(label = mean, y = pos), size = 3) +
     theme(text = element_text(size=16))
 
-  
+
 
 write.xlsx2(means, file=filename, sheetName="JourneyTime", append = T,row.names = FALSE) 
 
@@ -1044,19 +1085,21 @@ write.xlsx2(means, file=filename, sheetName="JourneyTime", append = T,row.names 
 
 
 
+Bookings
+===========================================================
 
 
+Row {data-height=200}
+-------------------------------------
 
-### Data is cleaned from:
+Data is cleaned from:  
+* 2200 - Red Bee National  
+* 6443 - BT Sports - Transport Captain  
+* G1, G2, G3, G4, G5, G6, G7, G8, G9.1, G9.5, GTC888, G50, G51, G5555, 7002  
+* LONGTC1387 (training jobs)  
 
-* 2200 - Red Bee National
-* 6443 - BT Sports - Transport Captain
-* G1, G2, G3, G4, G5, G6, G7, G8, G9.1, G9.5, GTC888, G50, G51, G5555, 7002
-* LONGTC1387 (training jobs)
 
-
-```{r echo= FALSE,fig.width=18, fig.height=10,warning=FALSE, message= FALSE}
-
+```{r }
 # remove 
 #2200 - Red Bee National
 #6443 - BT Sports - Transport Captain
@@ -1065,9 +1108,11 @@ write.xlsx2(means, file=filename, sheetName="JourneyTime", append = T,row.names 
 
 ```
 
-## Total number of bookings:  
 
-```{r echo=FALSE, message=FALSE,warning=FALSE}
+
+### Total number of bookings
+
+```{r }
 #store clened data to use later in performance
 gtc_cleaned <- gtc
 #bind back not cleaned data for job volume purpuses
@@ -1088,20 +1133,44 @@ tblJobs<-matrix(c(nrow(PreAcc),nrow(PreG10),nrow(Pregtc),
            ncol=3,byrow=TRUE)
 colnames(tblJobs)<-c('Account','G10','Total')
 rownames(tblJobs)<-c('PreBooked','ASAP','Total')
-tblJobs
+tblJobs_ <- as.data.frame(tblJobs)
+
+
+formattable(tblJobs_)
+
+
+
+## add service summary
+gtc$Service <-'Standard'
+gtc[gtc$name %in% c('Exec', 'Saloon - Executive'),]$Service <- 'Executive'
+gtc[gtc$name %in% c('MPV - 6 seater', 'MPV - 8 Seater', 'MPV - Corporate'),]$Service <- 'MPV'
+
+
+
+serv <- group_by(gtc, Service) %>% summarise(Total = sum(Count))
 ```
 
 ### including flipped trips:  
 
-```{r echo=FALSE, message=FALSE,warning=FALSE}
-nrow(gtc[substr(gtc$Driver,1,2) == 'DD' & !is.na(gtc$Driver),])
+```{r }
+f <-  nrow(gtc[substr(gtc$Driver,1,2) == 'DD' & !is.na(gtc$Driver),])
+
+
+valueBox(f,
+         color = "#0f8a39")
 ```
 
 
 
-## Job Volume by Type
 
-```{r echo= FALSE,fig.width=18, fig.height=10,warning=FALSE, message= FALSE}
+
+
+Row {data-height=800}
+-------------------------------------
+
+### Job Volume by Type
+
+```{r }
 ## Job Volume by Type
 gtc_per_hour <- group_by(gtc, Hour, Type2) %>% summarise(total = sum(Count))
 
@@ -1124,13 +1193,15 @@ gtc_per_15min$total<-gtc_per_15min$total
 # By 15 mins for each status
  ggplot(gtc_per_15min  ) +
     geom_bar(aes(x = Hour , y = total, fill = Type2 ),position = 'stack',stat="identity")  +
-    ggtitle('Job Volume by Type') +
+    ggtitle('') +
     xlab('Hour') +
     ylab('Hourly rate of jobs(bars)/drivers(line)') +
     theme(text = element_text(size=16)) +
     scale_x_continuous(breaks=seq(0,23.75,1))
 
+    ggplotly()
 
+    
 # by hour for each status
  #   ggplot(means, aes(x = Hour, y = mean, fill = Status)) +
 #    geom_bar(stat = 'identity', position = 'stack') +
@@ -1149,7 +1220,7 @@ gtc_per_15min$total<-gtc_per_15min$total
 
 
 
-```{r echo= FALSE,fig.width=18, fig.height=10,warning=FALSE, message= FALSE}
+```{r }
 
 gtc_per_vehicle <- group_by(gtc, Hour, VehicleType) %>% summarise(total = sum(Count))
 
@@ -1160,17 +1231,19 @@ write.xlsx2(as.data.frame(gtc_per_vehicle), file=filename, sheetName="VolumeByVe
 
 
 
-## Performance
-
-
-### Data is cleaned from irrelevant accounts plus:
-
-* 'PickUpArea': All airport pickups (TW6, RH6, CM24, E16, LU2); 
-* Integrated Platform jobs - One Transport and Morgan Stanley (Oscar). 
+Performance
+===========================================================
 
 
 
-```{r echo= FALSE,fig.width=18, fig.height=10,warning=FALSE, message= FALSE}
+Data is cleaned from irrelevant accounts plus:  
+
+* 'PickUpArea': All airport pickups (TW6, RH6, CM24, E16, LU2);   
+* Integrated Platform jobs - One Transport and Morgan Stanley (Oscar).   
+
+
+
+```{r }
 ## clean data from :
 #All airport jobs (collecting from Heathrow, Gatwick, Luton, City and Stansted) #have been excluded e.g. PickUpArea = TW6, RH6, CM24, E16, LU2
 
@@ -1185,9 +1258,12 @@ gtc <- gtc_cleaned
 ```
 
 
-### Performance (on time / 3 min late)
+Row {data-width=700}
+-------------------------------------
 
-```{r echo= FALSE,fig.width=18, fig.height=10,warning=FALSE, message= FALSE}
+### Performance (inc. 3 min late)
+
+```{r }
 
 #### MORE DETAILED ARRIVALS
 gtc$arrival_bucket <- '0'
@@ -1221,7 +1297,7 @@ gtc[gtc$MinDiff < (-20) ,]$arrival_bucket <- '20+ min early'
 
 
 
-```{r echo= FALSE,fig.width=18, fig.height=10,warning=FALSE, message= FALSE}
+```{r}
 ## 3 min late
 
 # '1-3 min early','On time', '1-3 min late', '4-5 min late', '6-10 min late', '10-20 min late', '20+ min late'
@@ -1260,10 +1336,11 @@ df_performance_3min$Percent_bucket <- cut(
 ggplot(df_performance_3min, aes(x = Hour, y = Percent, fill = Percent_bucket)) +
     geom_bar(position = 'stack', stat='identity') +
     facet_wrap(~Type) +
-    ggtitle('Performance (inc. arrival 3 min late)') +
-    theme(text = element_text(size=16)) +
-    geom_text(aes(label = Percent), size = 4)
+    ggtitle('') +
+    theme(text = element_text(size=7)) #+
+    #geom_text(aes(label = Percent), size = 1)
 
+    ggplotly()
 
 
 ```
@@ -1271,8 +1348,7 @@ ggplot(df_performance_3min, aes(x = Hour, y = Percent, fill = Percent_bucket)) +
 
 
 
-
-```{r echo= FALSE,fig.width=18, fig.height=10,warning=FALSE, message= FALSE}
+```{r }
 
 
 # make buckets for late and early arrivals
@@ -1312,11 +1388,12 @@ df_by_arrival$arrival_bucket <- factor(as.character(df_by_arrival$arrival_bucket
 
 
 
+Row {data-width=300}
+-------------------------------------
 
 
-
-## Arrivals
-```{r echo= FALSE,fig.width=18, fig.height=10,warning=FALSE, message= FALSE}
+### Arrivals in percents. ASAP and Prebook
+```{r }
 
 # calculate total jobs per date and ASAP
 df_per_date <- group_by(gtc, Type2) %>%
@@ -1343,11 +1420,14 @@ df_by_arrival <- df_by_arrival[rev(order(df_by_arrival$arrival_bucket)),]
 #p <- 
   ggplot(df_by_arrival, aes(x = Type2 , y = Percent, fill = arrival_bucket, group = arrival_bucket, order = -as.numeric(arrival_bucket))) +
     geom_bar(position = 'stack', stat='identity') +
-    theme(text = element_text(size=20)) +
+    theme(text = element_text(size=7)) +
     scale_y_continuous(breaks = seq(0,100,10))+
-  ggtitle('Arrivals in percents. ASAP and Prebook') +
+  ggtitle('') +
   xlab('Date') +
   ylab('Percent of jobs')
+  
+  ggplotly()
+
 #ggsave(filename="Arrivals in percents. ASAP and Prebook.jpg", plot=p,height = 7, width = 14)
   
 accounts_arrival<-df_by_arrival[df_by_arrival$Type2 == "asap_account" | df_by_arrival$Type2 =="prebook_account",]
@@ -1359,13 +1439,16 @@ accounts_arrivaltype$OnTimePct<-100-round(accounts_arrivaltype$JobSum/accounts_a
 ```
 
 
+Response Time & Handbacks
+===========================================================
+
+Row {data-height=600}
+-------------------------------------
 
 
 
-
-
-#Response Times
-```{r echo= FALSE,fig.width=18, fig.height=10,warning=FALSE, message= FALSE}
+###Response Times
+```{r }
 ResponsePostCode<-group_by(ResponseTime,pickupAddress,Hour) %>% summarise(AvgResponseTime = mean(delay,na.rm=TRUE))
 
 AvgResponseTime<-group_by(ResponseTime,Hour)%>% summarise(AvgResponseTime = mean(delay,na.rm = TRUE),
@@ -1403,19 +1486,30 @@ ggplot(AvgResponseMelt,aes(x=Hour,y=value,color=variable))+
  xlab('Hour') +
    ylab('minutes')
 
+  ggplotly()
 
+```
 
  
-#By Postcode
+###By Postcode
+
+```{r fig.width=8}
   ggplot(ResponsePostCode, aes(x = Hour, y = AvgResponseTime )) +
   geom_line(stat = 'identity',color='blue')  +
-  ggtitle('Response Time by Postcode') +
+  ggtitle('') +
   facet_wrap(~pickupAddress,ncol=3,shrink = FALSE)+ 
-  theme(strip.text.x=element_text(size=16, color = "Black"))+
+  theme(strip.text.x=element_text(size=8, color = "Black"))+
  # xlim(0,23)+
   ylim(0,90)+
-  scale_x_continuous(breaks = 0:23,limit = c(0,23))
+  scale_x_continuous(breaks = 0:23,limit = c(0,23)) +
+  theme(axis.text.x = element_text(size=7))
 
+    ggplotly()
+
+```
+
+
+```{r}
 #By Time Bucket
 ResponseTime$Period<-""
 ResponseTime[ResponseTime$Hour %in% c(6,7,8),]$Period<-"6-9_AMPeak"
@@ -1435,37 +1529,25 @@ ResponseTime[ResponseTime$Hour %in% c(18,19,20,21),]$PeriodNumber<-4
 
 ResponseTimePeriod<-as.data.frame(group_by(ResponseTime,PeriodNumber,Period)%>% summarise(AvgResponseTime = mean(delay,na.rm=TRUE)))
 
-ResponseTimePeriod
+
+
 write.xlsx2(ResponseTimePeriod, file=filename, sheetName="ResponseTimePeriod", append=TRUE)
 ```
 
-#Job Mileage and Dead Mileage
-This shows the dead miles and equivelant job miles. About 90% of jobs have dead miles recorded, the job miles for these are included. 
-Dead miles are the distance the driver must travel after being allocated the job, and does not include all empty running.
-```{r echo= FALSE,fig.width=18, fig.height=10,warning=FALSE, message= FALSE}
-DeadMiles2<-DeadMiles[!is.na(DeadMiles$distanceToPU),]
-DeadMiles2<-DeadMiles2[!is.na(DeadMiles2$actualDistance),]
 
-DeadMiles2$Hour<-as.numeric(format( as.POSIXct(DeadMiles2$`Allocated to driver`), "%H"))
+Row  
+-------------------------------------
 
-DeadMilesHour<-group_by(DeadMiles2,Hour) %>% summarise(DeadMiles = mean(distanceToPU))
-
-DeadMilesSum<-sum(DeadMiles2$distanceToPU,na.rm = TRUE)
-JobMilesSum<-sum(DeadMiles2$actualDistance,na.rm=TRUE)
-
-DeadMilesMean<-mean(DeadMiles2$distanceToPU,na.rm = TRUE)
-JobMilesMean<-mean(DeadMiles2$actualDistance,na.rm=TRUE)
+Below shows the dead miles and equivelant job miles. About 90% of jobs have dead miles recorded,   
+the job miles for these are included. Dead miles are the distance the driver must travel   
+after being allocated the job, and does not include all empty running.
 
 
-Ratio<-round(DeadMilesSum/(DeadMilesSum+JobMilesSum)*100,2)
-Ratio2<-round(DeadMilesMean/JobMilesMean*100,2)
-tbl2<-rbind(c("Mean Dead Miles","Mean Job Miles","Dead Mile %"),c(round(DeadMilesMean,2),round(JobMilesMean,2),Ratio))
 
-tbl2
-```
 
-#Driver Numbers
-```{r echo= FALSE,fig.width=18, fig.height=10,warning=FALSE, message= FALSE}
+
+
+```{r }
 #write todays stats to forecast
 #add to dropbox
 
@@ -1477,15 +1559,25 @@ Lite_24<-as.data.frame(Drivers_24[grepl('DD',Drivers_24$`unique(gtc2$Driver)`),]
 
 DriverCount<-nrow(Drivers_24)-nrow(Lite_24)
 LiteCount<-nrow(Lite_24)
-
-
-'GTC drivers who have completed 1 Job'
-DriverCount
-'Lite drivers who have completed 1 Job'
-LiteCount
+```
 
 
 
+###GTC drivers who have completed 1 Job'
+```{r}
+valueBox(DriverCount, 
+         color = "#0f8a39")
+
+```
+
+###Lite drivers who have completed 1 Job'
+```{r}
+
+valueBox(LiteCount, 
+         color = "#0f8a39")
+```
+
+```{r}
 CRMCount<-nrow(CRMQuery)
 CRMRatio<-round(CRMCount/nrow(gtc2)*100,2)
 
@@ -1529,9 +1621,40 @@ gs_edit_cells(lw,ws=1,input=lastweek,anchor='A1')
 
 ```
 
+Row {data-height=400}
+-------------------------------------
 
-#Handbacks
-```{r echo= FALSE,fig.width=18, fig.height=10,warning=FALSE, message= FALSE}
+
+###Job Mileage and Dead Mileage
+
+```{r }
+
+DeadMiles2<-DeadMiles[!is.na(DeadMiles$distanceToPU),]
+DeadMiles2<-DeadMiles2[!is.na(DeadMiles2$actualDistance),]
+
+DeadMiles2$Hour<-as.numeric(format( as.POSIXct(DeadMiles2$`Allocated to driver`), "%H"))
+
+DeadMilesHour<-group_by(DeadMiles2,Hour) %>% summarise(DeadMiles = mean(distanceToPU))
+
+DeadMilesSum<-sum(DeadMiles2$distanceToPU,na.rm = TRUE)
+JobMilesSum<-sum(DeadMiles2$actualDistance,na.rm=TRUE)
+
+DeadMilesMean<-mean(DeadMiles2$distanceToPU,na.rm = TRUE)
+JobMilesMean<-mean(DeadMiles2$actualDistance,na.rm=TRUE)
+
+
+Ratio<-round(DeadMilesSum/(DeadMilesSum+JobMilesSum)*100,2)
+Ratio2<-round(DeadMilesMean/JobMilesMean*100,2)
+tbl2<-rbind(c("Mean Dead Miles","Mean Job Miles","Dead Mile %"),c(round(DeadMilesMean,2),round(JobMilesMean,2),Ratio))
+
+tbl2_<-as.data.frame(tbl2[2,],tbl2[1,])
+names(tbl2_) <- 'value'
+formattable(tbl2_)
+```
+
+
+###Handbacks
+```{r }
 bookings$Count<-1
 bookings2<-bookings
 
@@ -1616,8 +1739,406 @@ handbacks2<-as.data.frame(group_by(handbacks,result) %>% summarise(total =sum(Co
 
 handbacks2$pct<-0
 handbacks2$pct<-round(handbacks2$total/sum(handbacks2$total)*100,2)
-handbacks2
+formattable(handbacks2)
 ```
+
+### Response Time
+
+```{r}
+formattable(ResponseTimePeriod)
+```
+
+
+Driver line
+===========================================================
+
+
+Row {data-height=100}
+-------------------------------------
+
+
+
+```{r echo= FALSE,fig.width=18, fig.height=8,warning=FALSE, message= FALSE}
+# Call Center Part for Con's report (inputA)
+
+# connect to database
+odbcChannel <- odbcConnect('Zeacom',uid  ='snapshot', pwd='Z3ac0m1234')
+
+calls  <- sqlQuery( odbcChannel, 
+                    "
+declare @yesterdayFROM datetime
+declare @yesterdayTO datetime
+set @yesterdayFROM =DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111))
+set @yesterdayTO =DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111)) + '23:59:59'
+
+select *, DATEPART(hh, Time)*60 + DATEPART(mi, Time) 'TimeInMin'
+from ZeacomConfig..pn_audit_calls ac
+where ac.Date is not null
+and ac.Date between @yesterdayFROM and @yesterdayTO
+")
+odbcClose(odbcChannel)
+
+
+odbcChannel <- odbcConnect('Rstudio', uid='Daria Alekseeva', pwd='Welcome30')
+bookings  <- sqlQuery( odbcChannel, 
+                       "
+declare @yesterdayFROM datetime
+declare @yesterdayTO datetime
+set @yesterdayFROM = DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111))
+set @yesterdayTO = DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111)) + '23:59:59'
+
+select j.id, j.jobDate,j.creationDate, j.creationType, j.customer_account_id, DATEPART(hh, j.creationDate)*60 + DATEPART(mi, j.creationDate) 'TimeInMin'
+from Echo_core_prod..jobs j 
+where j.creationType=0  
+and j.creationDate between @yesterdayFROM and @yesterdayTO
+
+order by j.id
+")
+odbcClose(odbcChannel)
+
+# filter out outbound calls (type = O)
+Outbound<-calls[calls$Type=='O',]
+calls <- calls[calls$Type!='O',]
+
+#save calls to later build driver line report 
+calls2 <- calls
+
+# filter only driver line data using queues and A calls more that 10 seconds
+dl <- calls[calls$Queue %in% c('567') & (calls$Resolution == 'Q' | calls$Resolution == 'A' & calls$WaitTime > 10),]
+dl$CLID  <- as.character(dl$CLID)
+dl <- dl[!is.na(dl$Date),]
+dl$Count <- 1
+
+
+### Day shift (8am to 8pm)
+### Night shift (8pm to 8am) 
+### split cc
+dl[is.na(dl$RingTime),]$RingTime <- 0
+dl$shift <- 'NightShift'
+if (nrow(dl[dl$TimeInMin >= 480 & dl$TimeInMin <= 1199,])>0) {
+dl[dl$TimeInMin >= 480 & dl$TimeInMin <= 1199,]$shift <- 'DayShift'}
+dayshiftDL <- dl[dl$shift == 'DayShift',]
+nightshiftDL <- dl[dl$shift == 'NightShift',]
+
+### split bookings
+
+#Get rid of the naughty bad bookings that make our stats go silly
+#these are:
+#great west house limited
+#Training
+#Memo account
+#GSK Coach overflow
+#Vehicle leasing - Insurance
+#Vehicle leasing - Rent
+
+unclean<-c("2085","4132","5294","6118","17331","17567")
+
+bookings<-bookings[!bookings$customer_account_id %in% unclean,]
+bookings$shift <- 'NightShift'
+bookings[bookings$TimeInMin >= 480 & bookings$TimeInMin <= 1199,]$shift <- 'DayShift'
+dayshiftB <- bookings[bookings$shift == 'DayShift',]
+nightshiftB <- bookings[bookings$shift == 'NightShift',]
+
+
+###driver line report
+######################
+
+# used earlier saved calls
+calls <- calls2
+
+# filter only call centre data using queues and A calls more that 10 seconds
+cc <- calls[calls$Queue %in% c('567') & (calls$Resolution == 'Q' | calls$Resolution == 'A' & calls$WaitTime > 10),]
+
+cc$CLID  <- as.character(cc$CLID)
+#cc<- cc[substr(cc$CLID,1,1)=="+",]
+cc <- cc[!is.na(cc$Date),]
+cc$Date <- as.POSIXct(cc$Date)
+cc$Count <- 1
+cc$Hour <- substr(cc$Time,1,2)
+cc$Weekday <- weekdays(cc$Date)
+cc$Weekday <- factor(cc$Weekday,levels=c('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'))
+cc$DateTime <- as.POSIXct(paste(cc$Date, cc$Time))
+cc$DateTimeHalfHour <- as.POSIXlt(round((as.double(cc$DateTime)-900)/(30*60))*(30*60),origin=(as.POSIXlt('1970-01-01')))
+cc$Hour <- substr(cc$DateTimeHalfHour,12,16)
+cc$Hour <- as.character(cc$Hour)
+cc$DateTimeHalfHour<-0
+cc$Total <- 'Total'
+
+# add 'answered in 30 sec column'
+cc$ASAbelow30 <- 0
+cc[cc$WaitTime <=30 ,]$ASAbelow30 <- 1
+
+# Create factor 'Abd', 'Under30' , 'Over30'
+cc$Resolution_ <- 'Abd'
+cc[cc$Resolution == 'Q' & cc$WaitTime <= 30,]$Resolution_ <- 'Under30'
+cc[cc$Resolution == 'Q' & cc$WaitTime > 30,]$Resolution_ <- 'Over30'
+
+### Daily summary
+
+# calulate summaries of the day
+cc_sum <- group_by(cc, Queue) %>% summarise(A_Q = sum(Count), ASAbelow30 = sum(ASAbelow30), ASA = round(mean(WaitTime),1))
+
+# A and Q
+a_q <- as.data.frame(group_by(cc, Queue, Resolution) %>% summarise (total = sum(Count))) 
+a_q <- reshape(a_q, 
+  timevar = "Resolution",
+  idvar = "Queue",
+  direction = "wide")
+a_q[is.na(a_q)] <- 0 
+
+
+cc_sum_ <- merge(cc_sum, a_q)
+cc_sum_$`%answered` <- round(( cc_sum_$total.Q / (cc_sum_$total.Q + cc_sum_$total.A) ) *100, 1)
+cc_summary <- cc_sum_
+
+write.xlsx(cc_summary, file=filename, sheetName="summaryCalls", append = TRUE) 
+
+
+
+formattable(cc_summary, list(
+  A_Q = color_tile("white", "green"),
+  ASAbelow30 = color_tile("white", "green"),
+  ASA = color_tile("white", "orange"),
+  total.A = color_tile("white", "green"),
+  total.Q = color_tile("white", "green"),
+  `%answered` = color_tile("white", "pink")))
+  
+```
+
+
+
+Row {data-height=200}
+-------------------------------------
+
+### Calls answered within 30 sec
+
+```{r echo= FALSE,fig.width=18, fig.height=8,warning=FALSE, message= FALSE}
+
+cc30sec <- cc[cc$Resolution_ == 'Under30',]
+bb <-round(nrow(cc30sec)/cc_summary$A_Q*100,2)
+#paste(bb,"%", " (Target is 90%)")
+
+write.xlsx(bb, file=filename, sheetName="CallsUnder30sec", append = TRUE) 
+
+
+ gauge(bb, min = 0, max = 100, symbol = '%', gaugeSectors(
+   success = c(90, 100), warning = c(50, 89), danger = c(0, 49)
+ ))
+
+
+```
+
+### Percentage of calls answered within 10 sec
+
+```{r echo= FALSE,fig.width=18, fig.height=8,warning=FALSE, message= FALSE}
+cc10sec <- cc[cc$WaitTime <= 10,]
+yy <-round(nrow(cc10sec)/cc_summary$A_Q*100,2)
+#paste(yy,"%", "  (Target is 85%)")
+
+write.xlsx(yy, file=filename, sheetName="CallsUnder10sec", append = TRUE) 
+
+
+ gauge(yy, min = 0, max = 100, symbol = '%', gaugeSectors(
+   success = c(85, 100), warning = c(40, 84), danger = c(0, 39)
+ ))
+
+
+```
+
+
+### ASA
+
+```{r echo= FALSE,fig.width=18, fig.height=8,warning=FALSE, message= FALSE}
+asa_daily <- round(mean(cc$WaitTime),2)
+#asa_daily
+
+ valueBox(asa_daily, 
+          icon = "fa-comments",
+          color = "#0f8a39")
+```
+
+
+### average Ring Time
+
+```{r echo= FALSE,fig.width=18, fig.height=8,warning=FALSE, message= FALSE}
+if (nrow(cc[is.na(cc$RingTime),])>0 ) {
+cc[is.na(cc$RingTime),]$RingTime <- 0 }
+ART<-round(mean(cc$RingTime),2)
+
+#ART
+
+ valueBox(ART, 
+          icon = "fa-comments",
+          color = "#0f8a39")
+```
+
+
+
+### Median Handle Time 
+
+```{r echo= FALSE,fig.width=18, fig.height=8,warning=FALSE, message= FALSE}
+talk_ <- cc[cc$Resolution == 'Q',]
+if (nrow(talk_[is.na(talk_$TalkTime),]) >0) {
+talk_[is.na(talk_$TalkTime),]$TalkTime <- 0  }  
+
+AHT_daily<-round(mean(talk_$TalkTime),2)
+
+#AHT_daily
+
+valueBox(AHT_daily, 
+          icon = "fa-comments",
+          color = "#0f8a39")
+```
+
+
+
+
+Row {data-height=700}
+-------------------------------------
+
+
+
+### Answered and Abandoned Calls
+
+```{r }
+# asa each 1/2 hours
+asa_per_hour <- group_by(cc, Hour)  %>% 
+                                   summarise(asa = round(mean(WaitTime),1))
+asa_per_hour$Resolution <- 'asa'
+
+write.xlsx(asa_per_hour, file=filename, sheetName="asa", append = TRUE) 
+
+volume_per_hour <- as.data.frame(group_by(cc, Hour, Resolution)  %>% 
+                                   summarise(call_sum = sum(Count)))
+
+
+# let's add the number of agents who are available and taking calls per half an hour
+
+# calculate agent count
+ac <- group_by(cc, AgentID, Hour) %>% summarise(CallCount = sum(Count))
+ac <- ac[!is.na(ac$AgentID),]
+ac$Count <- 1
+ac <- group_by(ac, Hour) %>% summarise(AgentCount = sum(Count))
+ac$Resolution <- 'AgentLogon'
+
+write.xlsx(ac, file=filename, sheetName="AgentLogon", append = TRUE) 
+
+Palette2 <- c("#FF0000", "#3399FF")
+
+ggplot(volume_per_hour)+
+  geom_bar(aes(x=Hour, y=call_sum,fill = Resolution, group = Resolution ), position = 'stack', stat='identity') +
+  geom_line(data = ac, aes(x = Hour, y= AgentCount, group = Resolution), color = 'black', size = 1) +
+  geom_line(data =asa_per_hour, aes(x = Hour, y = asa, group = Resolution), color = 'red', size =1) +
+  ggtitle('black line: agent logon, red line: asa') +
+  xlab('Hour') +
+  ylab('Number of Calls') + scale_fill_manual(values=Palette2,
+                  name="Resolution",
+                  breaks=c("A","Q"),
+                  labels=c("Abandoned", "Answered")) +
+  theme(axis.text.x = element_text(angle=45,size=7, hjust= 1),plot.title = element_text(size = 7))
+
+  ggplotly()
+
+
+
+# volume per half hour
+
+write.xlsx(volume_per_hour, file=filename, sheetName="VolumePerHalfHour", append = TRUE) 
+
+
+```
+
+
+
+
+ASA, Ring & Handle
+===========================================================
+
+
+Row 
+-------------------------------------
+
+
+### ASA 1/2 Hour (A + Q)
+
+```{r}
+
+ggplot(asa_per_hour, aes(x = Hour , y = asa)) +
+  geom_bar(position = 'dodge',stat="identity", fill = "#3399FF") +
+  ggtitle('') +
+  xlab('Hour') +
+  ylab('Seconds') +
+  theme(axis.text.x = element_text(angle=45,size=7, hjust= 1),plot.title = element_text(size = 7)) +  
+scale_colour_manual(name="Target",
+                  breaks=c("yintercept"),  
+                  values=c("yintercept=10"="red")) +
+  geom_hline(aes(yintercept=10), color = 'red')
+
+
+  ggplotly()
+  
+  ###
+```
+
+Row 
+-------------------------------------
+
+### Average Ring Time Per Half Hour (A + Q)
+
+```{r }
+# ring time 
+ring <- group_by(cc, Hour)  %>% 
+  summarise(avg_ring = mean(RingTime), sd_ring = sd(RingTime))
+
+ggplot(ring, aes(x = Hour , y = avg_ring)) +
+  geom_bar(position = 'dodge',stat="identity", fill = "#3399FF") +
+  ggtitle('') +
+  xlab('Hour') +
+  ylab('Seconds') +  
+  theme(axis.text.x = element_text(angle=45,size=7, hjust= 1),plot.title = element_text(size = 7)) +
+  geom_hline(aes(yintercept=2), color = 'red')
+  
+
+  ggplotly()
+
+
+write.xlsx(ring, file=filename, sheetName="AvgRing", append = TRUE) 
+###
+
+```
+
+Row 
+-------------------------------------
+
+### Median Handling Time 1/2 Hour (Q)
+
+```{r }
+###### handle time 
+
+
+talk <- group_by(talk_, Hour)  %>% 
+  summarise(avg_talk = mean(TalkTime), median_talk = median(TalkTime), sd_ring = sd(TalkTime))
+
+
+ggplot(talk, aes(x = Hour , y = median_talk)) +
+  geom_bar(position = 'dodge',stat="identity", fill = "#3399FF") +
+  ggtitle('') +
+  xlab('Hour') +
+  ylab('Seconds') +  
+  theme(axis.text.x = element_text(angle=45,size=7, hjust= 1),plot.title = element_text(size = 7))   #geom_hline(aes(yintercept=140), color = 'red')
+
+  ggplotly()
+  
+  
+write.xlsx(talk, file=filename, sheetName="AvgTalk", append = TRUE) 
+###
+  
+```
+
+
+
+
+
 
 
 
@@ -1739,87 +2260,6 @@ inputA<-c(inputA,snapshot[6],snapshotASAP[6],LoggedOn,LoggedOnGTC,Avail)
 
 #Agent performance
 ###################################################################
-# Call Center Part for Con's report (inputA)
-
-# connect to database
-odbcChannel <- odbcConnect('Zeacom',uid  ='snapshot', pwd='Z3ac0m1234')
-
-calls  <- sqlQuery( odbcChannel, 
-                    "
-declare @yesterdayFROM datetime
-declare @yesterdayTO datetime
-set @yesterdayFROM =DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111))
-set @yesterdayTO =DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111)) + '23:59:59'
-
-select *, DATEPART(hh, Time)*60 + DATEPART(mi, Time) 'TimeInMin'
-from ZeacomConfig..pn_audit_calls ac
-where ac.Date is not null
-and ac.Date between @yesterdayFROM and @yesterdayTO
-")
-odbcClose(odbcChannel)
-
-
-odbcChannel <- odbcConnect('Rstudio', uid='Daria Alekseeva', pwd='Welcome30')
-bookings  <- sqlQuery( odbcChannel, 
-                       "
-declare @yesterdayFROM datetime
-declare @yesterdayTO datetime
-set @yesterdayFROM = DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111))
-set @yesterdayTO = DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111)) + '23:59:59'
-
-select j.id, j.jobDate,j.creationDate, j.creationType, j.customer_account_id, DATEPART(hh, j.creationDate)*60 + DATEPART(mi, j.creationDate) 'TimeInMin'
-from Echo_core_prod..jobs j 
-where j.creationType=0  
-and j.creationDate between @yesterdayFROM and @yesterdayTO
-
-order by j.id
-")
-odbcClose(odbcChannel)
-
-# filter out outbound calls (type = O)
-Outbound<-calls[calls$Type=='O',]
-calls <- calls[calls$Type!='O',]
-
-#save calls to later build driver line report 
-calls2 <- calls
-
-# filter only driver line data using queues and A calls more that 10 seconds
-dl <- calls[calls$Queue %in% c('567') & (calls$Resolution == 'Q' | calls$Resolution == 'A' & calls$WaitTime > 10),]
-
-dl$CLID  <- as.character(dl$CLID)
-dl <- dl[!is.na(dl$Date),]
-dl$Count <- 1
-
-
-### Day shift (8am to 8pm)
-### Night shift (8pm to 8am) 
-### split cc
-dl[is.na(dl$RingTime),]$RingTime <- 0
-dl$shift <- 'NightShift'
-if (nrow(dl[dl$TimeInMin >= 480 & dl$TimeInMin <= 1199,])>0) {
-dl[dl$TimeInMin >= 480 & dl$TimeInMin <= 1199,]$shift <- 'DayShift'}
-dayshiftDL <- dl[dl$shift == 'DayShift',]
-nightshiftDL <- dl[dl$shift == 'NightShift',]
-
-### split bookings
-
-#Get rid of the naughty bad bookings that make our stats go silly
-#these are:
-#great west house limited
-#Training
-#Memo account
-#GSK Coach overflow
-#Vehicle leasing - Insurance
-#Vehicle leasing - Rent
-
-unclean<-c("2085","4132","5294","6118","17331","17567")
-
-bookings<-bookings[!bookings$customer_account_id %in% unclean,]
-bookings$shift <- 'NightShift'
-bookings[bookings$TimeInMin >= 480 & bookings$TimeInMin <= 1199,]$shift <- 'DayShift'
-dayshiftB <- bookings[bookings$shift == 'DayShift',]
-nightshiftB <- bookings[bookings$shift == 'NightShift',]
-
 
 # total calls
 ###########################################
@@ -1851,6 +2291,10 @@ inputA <- c(inputA, dl_summary)
 inputA<-c(inputA,tblJobs["Total","G10"],tblJobs["Total","Account"],tblJobs["Total","Total"],DeadMilesSum,DeadMilesMean)
 
 
+#Service Type
+###################################################################
+inputA<-c(inputA,serv$Total)
+
 
 #Avg Response Time
 ###################################################################
@@ -1861,8 +2305,23 @@ inputA<-c(inputA,ResponseTimePeriod[,"AvgResponseTime"])
 
 #On Time %
 ###################################################################
+# day shift perf
+inputA<-c(inputA,tbl["day","PrebookOnTime+3mins"],
+                 tbl["day","ASAPOnTime+3mins"],
+                 perf_all[1,]$Percent)
+
+# night shift perf
+inputA<-c(inputA,tbl["night","PrebookOnTime+3mins"],
+                 tbl["night","ASAPOnTime+3mins"],
+                 perf_all[2,]$Percent)
+
+
+# asap and preb on time
 inputA<-c(inputA,tbl["total","PrebookOnTime+3mins"],
                  tbl["total","ASAPOnTime+3mins"])
+
+# total on time
+inputA<-c(inputA, round(sum(perf_all$JobSum) / sum(perf_all$JobTotal) * 100,2) )
 
 inputA<-as.data.frame(inputA)
 colnames(inputA)<-c(
@@ -1923,6 +2382,9 @@ colnames(inputA)<-c(
                     "G10 JOBS",
                     "ACCOUNT JOBS",
                     "TOTAL JOBS",
+                    "EXEC",
+                    "MPV",
+                    "STDRD",
                    # "ASAP RATIO",
                     "TOTAL DEAD MILES",
                     "DEAD MILES / JOB",
@@ -1932,331 +2394,17 @@ colnames(inputA)<-c(
                     "RT 6-10",
                     "RT 10-1",
                     "RT 1-6",
+                    "DAY PREBOOK ON TIME",
+                    "DAY ASAP ON TIME",
+                    "DAY OVERALL ON TIME",
+                    "NIGHT PREBOOK ON TIME",
+                    "NIGHT ASAP ON TIME",
+                    "NIGHT OVERALL ON TIME",
                     "PREBOOK ON TIME",
-                    "ASAP ON TIME"
+                    "ASAP ON TIME",
+                    "OVERALL ON TIME"
                   )
 #Write to excel
 ###################################################################
 write.xlsx(inputA,file=filename,sheetName = "InputA",append = TRUE)
 ```
-
-
-# Driver line summary (queue 567)
-```{r echo= FALSE,fig.width=18, fig.height=8,warning=FALSE, message= FALSE}
-
-
-# used earlier saved calls
-calls <- calls2
-
-# filter only call centre data using queues and A calls more that 10 seconds
-cc <- calls[calls$Queue %in% c('567') & (calls$Resolution == 'Q' | calls$Resolution == 'A' & calls$WaitTime > 10),]
-
-cc$CLID  <- as.character(cc$CLID)
-#cc<- cc[substr(cc$CLID,1,1)=="+",]
-cc <- cc[!is.na(cc$Date),]
-cc$Date <- as.POSIXct(cc$Date)
-cc$Count <- 1
-cc$Hour <- substr(cc$Time,1,2)
-cc$Weekday <- weekdays(cc$Date)
-cc$Weekday <- factor(cc$Weekday,levels=c('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'))
-cc$DateTime <- as.POSIXct(paste(cc$Date, cc$Time))
-cc$DateTimeHalfHour <- as.POSIXlt(round((as.double(cc$DateTime)-900)/(30*60))*(30*60),origin=(as.POSIXlt('1970-01-01')))
-cc$Hour <- substr(cc$DateTimeHalfHour,12,16)
-cc$Hour <- as.character(cc$Hour)
-cc$DateTimeHalfHour<-0
-cc$Total <- 'Total'
-
-# add 'answered in 30 sec column'
-cc$ASAbelow30 <- 0
-cc[cc$WaitTime <=30 ,]$ASAbelow30 <- 1
-
-# Create factor 'Abd', 'Under30' , 'Over30'
-cc$Resolution_ <- 'Abd'
-cc[cc$Resolution == 'Q' & cc$WaitTime <= 30,]$Resolution_ <- 'Under30'
-cc[cc$Resolution == 'Q' & cc$WaitTime > 30,]$Resolution_ <- 'Over30'
-
-### Daily summary
-
-# calulate summaries of the day
-cc_sum <- group_by(cc, Queue) %>% summarise(A_Q = sum(Count), ASAbelow30 = sum(ASAbelow30), ASA = round(mean(WaitTime),1))
-
-# A and Q
-a_q <- as.data.frame(group_by(cc, Queue, Resolution) %>% summarise (total = sum(Count))) 
-a_q <- reshape(a_q, 
-  timevar = "Resolution",
-  idvar = "Queue",
-  direction = "wide")
-a_q[is.na(a_q)] <- 0 
-
-
-cc_sum_ <- merge(cc_sum, a_q)
-cc_sum_$`%answered` <- round(( cc_sum_$total.Q / (cc_sum_$total.Q + cc_sum_$total.A) ) *100, 1)
-cc_summary <- cc_sum_
-
-write.xlsx(cc_summary, file=filename, sheetName="summaryCalls", append = TRUE) 
-
-cc_summary
-
-# formattable(cc_summary, list(
-#   A_Q = color_tile("white", "green"),
-#   ASAbelow30 = color_tile("white", "green"),
-#   ASA = color_tile("white", "orange"),
-#   total.A = color_tile("white", "green"),
-#   total.Q = color_tile("white", "green"),
-#   `%answered` = color_tile("white", "pink")))
-  
-```
-
-
-### Calls answered within 30 sec
-
-```{r echo= FALSE,fig.width=18, fig.height=8,warning=FALSE, message= FALSE}
-
-cc30sec <- cc[cc$Resolution_ == 'Under30',]
-bb <-round(nrow(cc30sec)/cc_summary$A_Q*100,2)
-paste(bb,"%", " (Target is 90%)")
-
-write.xlsx(bb, file=filename, sheetName="CallsUnder30sec", append = TRUE) 
-
-
-# gauge(bb, min = 0, max = 100, symbol = '%', gaugeSectors(
-#   success = c(90, 100), warning = c(50, 89), danger = c(0, 49)
-# ))
-
-
-```
-
-### Percentage of calls answered within 10 sec
-
-```{r echo= FALSE,fig.width=18, fig.height=8,warning=FALSE, message= FALSE}
-cc10sec <- cc[cc$WaitTime <= 10,]
-yy <-round(nrow(cc10sec)/cc_summary$A_Q*100,2)
-paste(yy,"%", "  (Target is 85%)")
-
-write.xlsx(yy, file=filename, sheetName="CallsUnder10sec", append = TRUE) 
-
-
-# gauge(yy, min = 0, max = 100, symbol = '%', gaugeSectors(
-#   success = c(85, 100), warning = c(40, 84), danger = c(0, 39)
-# ))
-
-
-```
-
-
-### ASA
-
-```{r echo= FALSE,fig.width=18, fig.height=8,warning=FALSE, message= FALSE}
-asa_daily <- round(mean(cc$WaitTime),2)
-asa_daily
-
-# valueBox(asa_daily, 
-#          icon = "fa-comments",
-#          color = ifelse(asa_daily > 10, "warning", "primary"))
-```
-
-
-### average Ring Time
-
-```{r echo= FALSE,fig.width=18, fig.height=8,warning=FALSE, message= FALSE}
-if (nrow(cc[is.na(cc$RingTime),])>0 ) {
-cc[is.na(cc$RingTime),]$RingTime <- 0 }
-ART<-round(mean(cc$RingTime),2)
-
-ART
-
-# valueBox(ART, 
-#          icon = "fa-comments",
-#          color = ifelse(ART >2, "warning", "primary"))
-```
-
-
-
-### Median Handle Time 
-
-```{r echo= FALSE,fig.width=18, fig.height=8,warning=FALSE, message= FALSE}
-talk_ <- cc[cc$Resolution == 'Q',]
-if (nrow(talk_[is.na(talk_$TalkTime),]) >0) {
-talk_[is.na(talk_$TalkTime),]$TalkTime <- 0  }  
-
-AHT_daily<-round(mean(talk_$TalkTime),2)
-
-AHT_daily
-
-# valueBox(AHT_daily, 
-#          icon = "fa-comments",
-#          color = ifelse(AHT_daily > 140, "warning", "primary"))
-```
-
-
-
-### Abandoned, Over30, Under30 and ASA
-
-```{r echo= FALSE,fig.width=18, fig.height=8,warning=FALSE, message= FALSE}
-
-
-# asa each 1/2 hours
-asa_per_hour <- group_by(cc, Hour)  %>% 
-                                   summarise(asa = round(mean(WaitTime),1))
-asa_per_hour$Resolution_ <- 'asa'
-
-write.xlsx(asa_per_hour, file=filename, sheetName="asa", append = TRUE) 
-
-
-# volume per Half hour 30 sec and factor  'Abd', 'Under30' , 'Over30'
-volume_per_hour_Abd_UO30 <- as.data.frame(group_by(cc, Hour, Resolution_)  %>% 
-                                         summarise(call_sum = sum(Count)))
-
-write.xlsx(volume_per_hour_Abd_UO30, file=filename, sheetName="volume_per_hour_Abd_UO30", append = TRUE) 
-
-Palette22 <- c("#FF0000", "#000000", "#FFCC99","#3399FF")
-
-volume_per_hour_Abd_UO30$Resolution_ <- factor(volume_per_hour_Abd_UO30$Resolution_,levels= c('Abd', 'Over30', 'Under30'))
-
-ggplot(data = volume_per_hour_Abd_UO30, aes(x=Hour, y=call_sum,fill = Resolution_, group = Resolution_))+
-  geom_bar(position = 'stack', stat='identity') +
-  geom_line(data =asa_per_hour, aes(x = Hour, y = asa), color = 'black', size =1) +
-  ggtitle('') +
-  xlab('Hour') +
-  ylab('Number of Calls') + scale_fill_manual(values=Palette22) +
-  theme(axis.text.x = element_text(angle=45,size=7, hjust= 1),plot.title = element_text(size = 7))
-
-  #ggplotly()
-
-
-
-#### Q and A split of calls per 1/2 hour
-
-volume_per_hour <- as.data.frame(group_by(cc, Hour, Resolution)  %>% 
-                                   summarise(call_sum = sum(Count)))
-
-
-# let's add the number of agents who are available and taking calls per half an hour
-
-# calculate agent count
-ac <- group_by(cc, AgentID, Hour) %>% summarise(CallCount = sum(Count))
-ac <- ac[!is.na(ac$AgentID),]
-ac$Count <- 1
-ac <- group_by(ac, Hour) %>% summarise(AgentCount = sum(Count))
-ac$Resolution <- 'AgentLogon'
-
-write.xlsx(ac, file=filename, sheetName="AgentLogon", append = TRUE) 
-
-
-
-```
-
-
-
-
-
-### Answered and Abandoned Calls
-
-```{r echo= FALSE,fig.width=18, fig.height=8,warning=FALSE, message= FALSE}
-
-
-Palette2 <- c("#FF0000", "#3399FF")
-
-ggplot(volume_per_hour)+
-  geom_bar(aes(x=Hour, y=call_sum,fill = Resolution, group = Resolution ), position = 'stack', stat='identity') +
-  geom_line(data = ac, aes(x = Hour, y= AgentCount, group = Resolution), color = 'black', size = 1) +
-  ggtitle('black line: agent logon') +
-  xlab('Hour') +
-  ylab('Number of Calls') + scale_fill_manual(values=Palette2,
-                  name="Resolution",
-                  breaks=c("A","Q"),
-                  labels=c("Abandoned", "Answered")) +
-  theme(axis.text.x = element_text(angle=45,size=7, hjust= 1),plot.title = element_text(size = 7))
-
-  #ggplotly()
-
-
-
-# volume per half hour
-
-write.xlsx(volume_per_hour, file=filename, sheetName="VolumePerHalfHour", append = TRUE) 
-
-
-```
-
-
-
-
-
-### ASA 1/2 Hour (A + Q)
-
-```{r echo= FALSE,fig.width=18, fig.height=8,warning=FALSE, message= FALSE}
-
-ggplot(asa_per_hour, aes(x = Hour , y = asa)) +
-  geom_bar(position = 'dodge',stat="identity", fill = "#3399FF") +
-  ggtitle('') +
-  xlab('Hour') +
-  ylab('Seconds') +
-  theme(axis.text.x = element_text(angle=45,size=7, hjust= 1),plot.title = element_text(size = 7)) +  
-scale_colour_manual(name="Target",
-                  breaks=c("yintercept"),  
-                  values=c("yintercept=10"="red")) +
-  geom_hline(aes(yintercept=10), color = 'red')
-
-
-  #ggplotly()
-  
-  ###
-```
-
-
-### Average Ring Time Per Half Hour (A + Q)
-
-```{r echo= FALSE,fig.width=18, fig.height=8,warning=FALSE, message= FALSE}
-# ring time 
-ring <- group_by(cc, Hour)  %>% 
-  summarise(avg_ring = mean(RingTime), sd_ring = sd(RingTime))
-
-ggplot(ring, aes(x = Hour , y = avg_ring)) +
-  geom_bar(position = 'dodge',stat="identity", fill = "#3399FF") +
-  ggtitle('') +
-  xlab('Hour') +
-  ylab('Seconds') +  
-  theme(axis.text.x = element_text(angle=45,size=7, hjust= 1),plot.title = element_text(size = 7)) +
-  geom_hline(aes(yintercept=2), color = 'red')
-  
-
-  #ggplotly()
-
-
-write.xlsx(ring, file=filename, sheetName="AvgRing", append = TRUE) 
-###
-
-```
-
-
-
-### Median Handling Time 1/2 Hour (Q)
-
-```{r echo= FALSE,fig.width=18, fig.height=8,warning=FALSE, message= FALSE}
-###### handle time 
-
-
-talk <- group_by(talk_, Hour)  %>% 
-  summarise(avg_talk = mean(TalkTime), median_talk = median(TalkTime), sd_ring = sd(TalkTime))
-
-
-ggplot(talk, aes(x = Hour , y = median_talk)) +
-  geom_bar(position = 'dodge',stat="identity", fill = "#3399FF") +
-  ggtitle('') +
-  xlab('Hour') +
-  ylab('Seconds') +  
-  theme(axis.text.x = element_text(angle=45,size=7, hjust= 1),plot.title = element_text(size = 7))   #geom_hline(aes(yintercept=140), color = 'red')
-
-  #ggplotly()
-  
-  
-write.xlsx(talk, file=filename, sheetName="AvgTalk", append = TRUE) 
-###
-  
-```
-
-
-
-
-
