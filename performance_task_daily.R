@@ -1,6 +1,7 @@
 # This is the Waiting Time Task R file 
 #======================================
 library(dplyr)
+library(flexdashboard)
 pacman::p_load(rmarkdown, knitr)
 
 ## This will need to be changed to your local settings
@@ -21,7 +22,12 @@ dir.create("spreadsheets",showWarnings = F)
 
 
 # Go baby run the report
-rmarkdown::render("performance_daily.Rmd", "html_document", output_dir = "reports")
+rmarkdown::render("performance_daily.Rmd", output_dir = "reports" )
+
+# zip dashboard file
+setwd(reports_dir)
+zip(zipfile = 'performance_daily', files = 'performance_daily.html')
+
 
 # Get the list of the generated files 
 html_files <- list.files(reports_dir, recursive=TRUE)
@@ -45,7 +51,7 @@ outMail = OutApp$CreateItem(0)
 outMail[["subject"]] = 'Daily Performance GTC'
 outMail[["To"]] = base_list
 outMail[["body"]] = "Good day. This is an automated e-mail. Daily performance report is attached. Daria"
-outMail[["Attachments"]]$Add(paste(reports_dir,'performance_daily.html', sep='/'))
+outMail[["Attachments"]]$Add(paste(reports_dir,'performance_daily.zip', sep='/'))
 outMail[["Attachments"]]$Add(paste(spreadsheets_dir,xlsx_name, sep='/'))
 outMail$Send()
 rm(list = c("OutApp","outMail"))
