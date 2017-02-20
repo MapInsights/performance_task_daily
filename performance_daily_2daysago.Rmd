@@ -14,7 +14,7 @@ Summary
 
 
 ```{r echo=FALSE}
-start <- as.Date(Sys.time() - (60*60*24))
+start <- as.Date(Sys.time() - (60*60*24)*2)
 start
 ```
 
@@ -68,7 +68,7 @@ f1$NightASAP<-as.numeric(f1$NightASAP)
 f1$NightPrebook<-as.numeric(f1$NightPrebook)
 
 #get today in crazy excel days since 1900
-xlToday<-as.Date(Sys.Date())
+xlToday<-as.Date(Sys.Date())-1
 xlToday<-difftime(xlToday,'1900-01-01',units='days') + 2 
 xlToday<-as.numeric(xlToday)
 rowNo<-as.numeric(difftime(as.Date(Sys.Date()),'2015-12-21',units='days') )
@@ -93,8 +93,8 @@ gtc  <- sqlQuery( odbcChannel,
 "
 declare @FROM datetime
 declare @TO datetime
-set @FROM = DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111))
-set @TO = DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111)) +'23:59:59'
+set @FROM = DATEADD(DAY, -2, CONVERT(CHAR(10), getdate(), 111))
+set @TO = DATEADD(DAY, -2, CONVERT(CHAR(10), getdate(), 111)) +'23:59:59'
 select j.id, ca.number as 'AccountNumber', ca.name as 'AccountName', cg.name as 'Grade', j.jobDate, jh.actionDate as 'ArrivalTime',
 DATEDIFF(minute, j.jobDate, jh.actionDate) as 'MinDiff',
 c.name as 'Driver',
@@ -154,8 +154,8 @@ DeadMiles<-sqlQuery( odbcChannel,
 "
 declare @FROM datetime
 declare @TO datetime
-set @FROM = DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111))
-set @TO = DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111)) +'23:59:59'
+set @FROM = DATEADD(DAY, -2, CONVERT(CHAR(10), getdate(), 111))
+set @TO = DATEADD(DAY, -2, CONVERT(CHAR(10), getdate(), 111)) +'23:59:59'
 select			
 	j.id,	
 j.actualDistance,
@@ -227,8 +227,8 @@ left join echo_core_prod..jobs j on j.id=a0.jobReference
 CRMQuery <-sqlQuery( odbcChannel,
      "declare @FROM datetime
 declare @TO datetime
-set @FROM = DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111))
-set @TO = DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111)) +'23:59:59'
+set @FROM = DATEADD(DAY, -2, CONVERT(CHAR(10), getdate(), 111))
+set @TO = DATEADD(DAY, -2, CONVERT(CHAR(10), getdate(), 111)) +'23:59:59'
 
 select ji.id , ji.customer_account_id
 from echo_core_prod..job_issues ji
@@ -243,8 +243,8 @@ drivers <- sqlQuery( odbcChannel,
 "
 declare @FROM datetime
 declare @TO datetime
-set @FROM = DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111))
-set @TO = DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111)) +'23:59:59'
+set @FROM = DATEADD(DAY, -2, CONVERT(CHAR(10), getdate(), 111))
+set @TO = DATEADD(DAY, -2, CONVERT(CHAR(10), getdate(), 111)) +'23:59:59'
 
 select * 
 from Archive_echo_core_prod.dbo.OnlineDriversHistory 
@@ -255,8 +255,8 @@ jobhistory <- sqlQuery( odbcChannel,
 "
 declare @FROM datetime
 declare @TO datetime
-set @FROM = DATEADD(DAY, -2, CONVERT(CHAR(10), getdate(), 111))
-set @TO = DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111)) +'23:59:59'
+set @FROM = DATEADD(DAY, -3, CONVERT(CHAR(10), getdate(), 111))
+set @TO = DATEADD(DAY, -2, CONVERT(CHAR(10), getdate(), 111)) +'23:59:59'
 
 select j.id, j.jobDate, ca.number, ca.name, c.name 'UserName' ,
 (select min(jh.actionDate) from
@@ -281,8 +281,8 @@ and c.name not like 'DD%'
 ResponseTime <-sqlQuery( odbcChannel,"
 declare @startDate date
 declare @endDate date
-set @startDate = DATEADD(DAY, -2, getdate())
-set @endDate = DATEADD(DAY, -1, getdate()) + '23:59:59'
+set @startDate = DATEADD(DAY, -3, getdate())
+set @endDate = DATEADD(DAY, -2, getdate()) + '23:59:59'
 select startDate,datepart(hour,startDate) 'Hour',DATEPART(minute,startDate) 'Minute', pickupAddress, delay,serviceId
 from echo_core_prod..dynamic_delay_promises where source = 8  and
  startDate between  @startDate and @endDate                    
@@ -293,8 +293,8 @@ cashblock <- sqlQuery( odbcChannel,
 "
 declare @FROM datetime
 declare @TO datetime
-set @FROM = DATEADD(DAY, -6, CONVERT(CHAR(10), getdate(), 111))
-set @TO = DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111)) +'23:59:59'
+set @FROM = DATEADD(DAY, -7, CONVERT(CHAR(10), getdate(), 111))
+set @TO = DATEADD(DAY, -2, CONVERT(CHAR(10), getdate(), 111)) +'23:59:59'
 
 	select daa.id, daa.REVTYPE, daa.fromTime, daa.toTime, r.timestamp, r.username,
 	case daa.dayOfWeek when 1 then 'Monday'
@@ -314,8 +314,8 @@ set @TO = DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111)) +'23:59:59'
 bookings <-sqlQuery( odbcChannel, 
   "declare @yesterdayFROM datetime
 declare @yesterdayTO datetime
-set @yesterdayFROM = DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111))
-set @yesterdayTO = DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111)) + '23:59:59'
+set @yesterdayFROM = DATEADD(DAY, -2, CONVERT(CHAR(10), getdate(), 111))
+set @yesterdayTO = DATEADD(DAY, -2, CONVERT(CHAR(10), getdate(), 111)) + '23:59:59'
 
 select j.id, jh.userName, jh.actionDate,jh.shortArg, jh.jobReference,jh2.shortArg,jh2.actionDate,jh2.userName,j.creationType,j.jobStatus,
 datepart(year,j.jobdate) 'JobYear',
@@ -341,8 +341,8 @@ odbcChannel <- odbcConnect('echo_core', uid='Daria Alekseeva', pwd='Welcome30')
 
 snapshot<-sqlQuery( odbcChannel, "declare @yesterdayFROM datetime
 declare @yesterdayTO datetime
-set @yesterdayFROM = DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111))
-set @yesterdayTO = DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111)) + '23:59:59'
+set @yesterdayFROM = DATEADD(DAY, -2, CONVERT(CHAR(10), getdate(), 111))
+set @yesterdayTO = DATEADD(DAY, -2, CONVERT(CHAR(10), getdate(), 111)) + '23:59:59'
 select --distinct datepart(HOUR,j.jobdate) 'Hour',
 		count(DISTINCT (case when  datepart(hour,jt.actualAcceptTime) < '3' and datepart(hour,jt.actualPodTime) >= '3' then jt.id else null end)) '3am',
 		count(DISTINCT (case when  datepart(hour,jt.actualAcceptTime) < '8' and datepart(hour,jt.actualPodTime) >= '8' then jt.id else null end)) '8am',
@@ -357,8 +357,8 @@ where j.jobDate between @yesterdayFROM and @yesterdayTO")
 
 snapshotASAP<-sqlQuery( odbcChannel, "declare @yesterdayFROM datetime
 declare @yesterdayTO datetime
-set @yesterdayFROM = DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111))
-set @yesterdayTO = DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111)) + '23:59:59'
+set @yesterdayFROM = DATEADD(DAY, -2, CONVERT(CHAR(10), getdate(), 111))
+set @yesterdayTO = DATEADD(DAY, -2, CONVERT(CHAR(10), getdate(), 111)) + '23:59:59'
 select --distinct datepart(HOUR,j.jobdate) 'Hour',
 		count(DISTINCT (case when  datepart(hour,jt.actualAcceptTime) < '3' and datepart(hour,jt.actualPodTime) >= '3' then jt.id else null end)) '3am',
 		count(DISTINCT (case when  datepart(hour,jt.actualAcceptTime) < '8' and datepart(hour,jt.actualPodTime) >= '8' then jt.id else null end)) '8am',
@@ -377,8 +377,8 @@ portal<-sqlQuery( odbcChannel,
 "
 declare @yesterdayFROM datetime
 declare @yesterdayTO datetime
-set @yesterdayFROM =DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111))
-set @yesterdayTO =DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111)) + '23:59:59'
+set @yesterdayFROM =DATEADD(DAY, -2, CONVERT(CHAR(10), getdate(), 111))
+set @yesterdayTO =DATEADD(DAY, -2, CONVERT(CHAR(10), getdate(), 111)) + '23:59:59'
 select
     jh.jobReference as 'Job_number',
     j.jobstatus as 'job status',
@@ -919,7 +919,7 @@ library(dplyr)
 
 #GTC Jobs working (but not the chart)
 file <- jobhistory
-yesterday <- as.Date(Sys.time()-(60*60*24))
+yesterday <- as.Date(Sys.time()-(60*60*24)*2)
     
 
 file <- file[grepl(yesterday, file$TimeAccepted) |  grepl(yesterday, file$TimeArrived) | grepl(yesterday, file$TimePoB) | grepl(yesterday, file$TimeCompleted),]
@@ -1768,8 +1768,8 @@ calls  <- sqlQuery( odbcChannel,
                     "
 declare @yesterdayFROM datetime
 declare @yesterdayTO datetime
-set @yesterdayFROM =DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111))
-set @yesterdayTO =DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111)) + '23:59:59'
+set @yesterdayFROM =DATEADD(DAY, -2, CONVERT(CHAR(10), getdate(), 111))
+set @yesterdayTO =DATEADD(DAY, -2, CONVERT(CHAR(10), getdate(), 111)) + '23:59:59'
 
 select *, DATEPART(hh, Time)*60 + DATEPART(mi, Time) 'TimeInMin'
 from ZeacomConfig..pn_audit_calls ac
@@ -1784,8 +1784,8 @@ bookings  <- sqlQuery( odbcChannel,
                        "
 declare @yesterdayFROM datetime
 declare @yesterdayTO datetime
-set @yesterdayFROM = DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111))
-set @yesterdayTO = DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111)) + '23:59:59'
+set @yesterdayFROM = DATEADD(DAY, -2, CONVERT(CHAR(10), getdate(), 111))
+set @yesterdayTO = DATEADD(DAY, -2, CONVERT(CHAR(10), getdate(), 111)) + '23:59:59'
 
 select j.id, j.jobDate,j.creationDate, j.creationType, j.customer_account_id, DATEPART(hh, j.creationDate)*60 + DATEPART(mi, j.creationDate) 'TimeInMin'
 from Echo_core_prod..jobs j 
