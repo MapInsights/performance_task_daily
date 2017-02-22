@@ -909,6 +909,7 @@ DRIVERS <- melt(DRIVERS[c('Hour','GTC_drivers', 'Lite_drivers')], id = 'Hour')
 library(plyr)
 
 # calculate midpoints of bars (simplified using comment by @DWin)
+DRIVERS$variable <- factor(DRIVERS$variable, levels = c('Lite_drivers', 'GTC_drivers'))
 DRIVERS <- ddply(DRIVERS, .(Hour), 
    transform, pos = cumsum(value) - (0.5 * value)
 )    
@@ -1139,13 +1140,10 @@ tblJobs_ <- as.data.frame(tblJobs)
 formattable(tblJobs_)
 
 
-
 ## add service summary
 gtc$Service <-'Standard'
-gtc[gtc$name %in% c('Exec', 'Saloon - Executive'),]$Service <- 'Executive'
-gtc[gtc$name %in% c('MPV - 6 seater', 'MPV - 8 Seater', 'MPV - Corporate'),]$Service <- 'MPV'
-
-
+gtc[gtc$VehicleType %in% c('Executive','Merc Guarantee', 'Mirai', 'Lite Exec', 'Guarantee', 'Electric Vehicle'),]$Service <- 'Executive'
+gtc[gtc$VehicleType %in% c('MPV-8', 'MPV'),]$Service <- 'MPV'
 
 serv <- group_by(gtc, Service) %>% summarise(Total = sum(Count))
 ```
