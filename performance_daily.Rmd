@@ -30,8 +30,9 @@ library(xlsx)
 library(rJava)
 library(plotly)
 library(flexdashboard)
+setwd('H:/performance_task_daily')
 #setwd('C:/Users/daria.alekseeva/Documents/Analysis/cloned_repos/performance_task_daily')
-setwd('C:/Programs/gtc_tasks/performance_task_daily/')
+#setwd('C:/Programs/gtc_tasks/performance_task_daily/')
 #setwd('D:/git/performance_task_daily/')
 
 ```
@@ -85,8 +86,8 @@ library(DBI)
 library(RODBC)
 # connect to database
 #odbcChannel <- odbcConnect('echo_core', uid='Daria Alekseeva', pwd='Welcome30')
-odbcChannel <- odbcConnect('Rstudio', uid='Daria Alekseeva', pwd='Welcome30')
-
+#odbcChannel <- odbcConnect('Rstudio', uid='Daria Alekseeva', pwd='Welcome30')
+odbcChannel <- odbcConnect('echo_prod', uid='Daria Alekseeva', pwd='Welcome30')
 
 # query for last day which is not in archive yet
 gtc  <- sqlQuery( odbcChannel, 
@@ -334,9 +335,10 @@ and j.jobDate between @yesterdayFROM and @yesterdayTO")
 
 odbcClose(odbcChannel)
 
+###New ODBC channel
 
-odbcChannel <- odbcConnect('echo_core', uid='Daria Alekseeva', pwd='Welcome30')
-
+#odbcChannel <- odbcConnect('echo_core', uid='Daria Alekseeva', pwd='Welcome30')
+odbcChannel <- odbcConnect('echo_prod', uid='Daria Alekseeva', pwd='Welcome30')
 
 
 snapshot<-sqlQuery( odbcChannel, "declare @yesterdayFROM datetime
@@ -1777,7 +1779,8 @@ and ac.Date between @yesterdayFROM and @yesterdayTO
 odbcClose(odbcChannel)
 
 
-odbcChannel <- odbcConnect('Rstudio', uid='Daria Alekseeva', pwd='Welcome30')
+#odbcChannel <- odbcConnect('Rstudio', uid='Daria Alekseeva', pwd='Welcome30')
+odbcChannel <- odbcConnect('echo_prod', uid='Daria Alekseeva', pwd='Welcome30')
 bookings  <- sqlQuery( odbcChannel, 
                        "
 declare @yesterdayFROM datetime
@@ -2135,7 +2138,63 @@ write.xlsx(talk, file=filename, sheetName="AvgTalk", append = TRUE)
   
 ```
 
+###Lite drivers who have completed 1 Job'
+```{r}
 
+valueBox(LiteCount, 
+         color = "#0f8a39")
+```
+
+
+
+```{r}
+CRMCount<-nrow(CRMQuery)
+CRMRatio<-round(CRMCount/nrow(gtc2)*100,2)
+
+CRM_Account<-CRMQuery[CRMQuery$customer_account_id != "3743",]
+CRMCountAccount<-nrow(CRM_Account)
+CRMRatioAccount<-round(CRMCountAccount/(nrow(PreAcc)+nrow(asapAcc))*100,2)
+
+asa_daily <- round(mean(cc$WaitTime),2)
+AHT_daily<-round(mean(talk_$TalkTime),2)
+
+
+library(googlesheets)
+library(rdrop2)
+
+
+accountPre<-accounts_arrivaltype[accounts_arrivaltype$Type2=="prebook_account","OnTimePct"]
+accountASAP<-accounts_arrivaltype[accounts_arrivaltype$Type2=="asap_account","OnTimePct"]
+
+f1[rowNo,c(13:15)]<-c(DriverCount,LiteCount,CRMCount)
+f1[rowNo,c(16:21)]<-c(day[1:3],night[1:3])
+f1[rowNo,c(22:25)]<-c(nrow(PreAcc)+nrow(asapAcc),CRMRatioAccount,accountPre,accountASAP)
+
+f1[rowNo,c(26:27)] <- c(asa_daily,AHT_daily)
+
+write.xlsx2(f1,file=forecast,headers=TRUE,row.names=FALSE)
+rowStart<-rowNo-8
+lastweek<-f1[c(rowStart:rowNo),c(1:2,4:27)]
+lastweekName<-'forecast/LastWeek.xlsx'
+
+#Remove NAs which Gecko doesn't like
+lastweek[is.na(lastweek)]<-0
+
+lw<-gs_title('lastweek2')
+gs_edit_cells(lw,ws=1,input=lastweek,anchor='A1')
+
+
+
+
+#DriversSheet<-gs_title('DailyDrivers')
+#DriversTable<-gs_read(DriversSheet)
+#DriversTable2<-DriversTable[2:8,]
+#DriversTable2<-rbind(DriversTable2,c(DriverCount,LiteCount,CRMCount ))
+
+
+#gs_edit_cells(DriversSheet,ws=1,input=DriversTable2,anchor='A1')
+
+```
 
 
 
