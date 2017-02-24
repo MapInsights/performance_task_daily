@@ -30,9 +30,9 @@ library(xlsx)
 library(rJava)
 library(plotly)
 library(flexdashboard)
-setwd('H:/performance_task_daily')
+#setwd('H:/performance_task_daily')
 #setwd('C:/Users/daria.alekseeva/Documents/Analysis/cloned_repos/performance_task_daily')
-#setwd('C:/Programs/gtc_tasks/performance_task_daily/')
+setwd('C:/Programs/gtc_tasks/performance_task_daily/')
 #setwd('D:/git/performance_task_daily/')
 
 ```
@@ -86,8 +86,8 @@ library(DBI)
 library(RODBC)
 # connect to database
 #odbcChannel <- odbcConnect('echo_core', uid='Daria Alekseeva', pwd='Welcome30')
-#odbcChannel <- odbcConnect('Rstudio', uid='Daria Alekseeva', pwd='Welcome30')
-odbcChannel <- odbcConnect('echo_prod', uid='Daria Alekseeva', pwd='Welcome30')
+odbcChannel <- odbcConnect('Rstudio', uid='Daria Alekseeva', pwd='Welcome30')
+#odbcChannel <- odbcConnect('echo_prod', uid='Daria Alekseeva', pwd='Welcome30')
 
 # query for last day which is not in archive yet
 gtc  <- sqlQuery( odbcChannel, 
@@ -337,8 +337,8 @@ odbcClose(odbcChannel)
 
 ###New ODBC channel
 
-#odbcChannel <- odbcConnect('echo_core', uid='Daria Alekseeva', pwd='Welcome30')
-odbcChannel <- odbcConnect('echo_prod', uid='Daria Alekseeva', pwd='Welcome30')
+odbcChannel <- odbcConnect('echo_core', uid='Daria Alekseeva', pwd='Welcome30')
+#odbcChannel <- odbcConnect('echo_prod', uid='Daria Alekseeva', pwd='Welcome30')
 
 
 snapshot<-sqlQuery( odbcChannel, "declare @yesterdayFROM datetime
@@ -1779,8 +1779,8 @@ and ac.Date between @yesterdayFROM and @yesterdayTO
 odbcClose(odbcChannel)
 
 
-#odbcChannel <- odbcConnect('Rstudio', uid='Daria Alekseeva', pwd='Welcome30')
-odbcChannel <- odbcConnect('echo_prod', uid='Daria Alekseeva', pwd='Welcome30')
+odbcChannel <- odbcConnect('Rstudio', uid='Daria Alekseeva', pwd='Welcome30')
+#odbcChannel <- odbcConnect('echo_prod', uid='Daria Alekseeva', pwd='Welcome30')
 bookings  <- sqlQuery( odbcChannel, 
                        "
 declare @yesterdayFROM datetime
