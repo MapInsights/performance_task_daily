@@ -1142,8 +1142,8 @@ formattable(tblJobs_)
 
 ## add service summary
 gtc$Service <-'Standard'
-gtc[gtc$name %in% c('Exec', 'Saloon - Executive'),]$Service <- 'Executive'
-gtc[gtc$name %in% c('MPV - 6 seater', 'MPV - 8 Seater', 'MPV - Corporate'),]$Service <- 'MPV'
+gtc[gtc$VehicleType %in% c('Executive','Merc Guarantee', 'Mirai', 'Lite Exec', 'Guarantee', 'Electric Vehicle'),]$Service <- 'Executive'
+gtc[gtc$VehicleType %in% c('MPV-8', 'MPV'),]$Service <- 'MPV'
 
 
 
