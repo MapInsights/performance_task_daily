@@ -49,7 +49,7 @@ library(RDCOMClient)
 OutApp <- COMCreate("Outlook.Application")
 outMail = OutApp$CreateItem(0)
 outMail[["subject"]] = 'Daily Performance GTC'
-outMail[["To"]] = daily_list#base_list
+outMail[["To"]] = base_list
 outMail[["body"]] = "Good day. This is an automated e-mail. Daily performance report is attached. Daria"
 outMail[["Attachments"]]$Add(paste(reports_dir,'performance_daily.html', sep='/'))
 outMail[["Attachments"]]$Add(paste(spreadsheets_dir,xlsx_name, sep='/'))
