@@ -25,8 +25,8 @@ dir.create("spreadsheets",showWarnings = F)
 rmarkdown::render("performance_daily.Rmd", output_dir = "reports" )
 
 # zip dashboard file
-setwd(reports_dir)
-zip(zipfile = 'performance_daily', files = 'performance_daily.html')
+#setwd(reports_dir)
+#zip(zipfile = 'performance_daily', files = 'performance_daily.html')
 
 
 # Get the list of the generated files 
@@ -49,9 +49,9 @@ library(RDCOMClient)
 OutApp <- COMCreate("Outlook.Application")
 outMail = OutApp$CreateItem(0)
 outMail[["subject"]] = 'Daily Performance GTC'
-outMail[["To"]] = base_list
+outMail[["To"]] = daily_list#base_list
 outMail[["body"]] = "Good day. This is an automated e-mail. Daily performance report is attached. Daria"
-outMail[["Attachments"]]$Add(paste(reports_dir,'performance_daily.zip', sep='/'))
+outMail[["Attachments"]]$Add(paste(reports_dir,'performance_daily.html', sep='/'))
 outMail[["Attachments"]]$Add(paste(spreadsheets_dir,xlsx_name, sep='/'))
 outMail$Send()
 rm(list = c("OutApp","outMail"))
