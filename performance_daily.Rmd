@@ -850,7 +850,7 @@ gtc_per_15min_all$total<-gtc_per_15min_all$total * 4
 ResponseTime$segment<-ResponseTime$Hour *60 + ResponseTime$Minute
 ResponseTime$segment<-floor(ResponseTime$segment/5)
 
-ResponseChart<-group_by(ResponseTime,segment) %>% summarise(AvgResponseTime = mean(delay))
+ResponseChart<-group_by(ResponseTime,segment) %>% summarise(AvgResponseTime = mean(delay, na.rm = TRUE))
 ResponseChart$Hour = ResponseChart$segment * 5 / 60
 
 
