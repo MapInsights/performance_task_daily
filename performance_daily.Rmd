@@ -247,7 +247,7 @@ declare @TO datetime
 set @FROM = DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111))
 set @TO = DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111)) +'23:59:59'
 
-select * 
+select ID, convert(char(23),Timestamp, 121) as 'Timestamp', VehicleType, OnlineDrivers 
 from Archive_echo_core_prod.dbo.OnlineDriversHistory 
 where timestamp between @FROM and @TO ")
 
@@ -320,7 +320,7 @@ declare @yesterdayTO datetime
 set @yesterdayFROM = DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111))
 set @yesterdayTO = DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111)) + '23:59:59'
 
-select j.id, jh.userName, jh.actionDate,jh.shortArg, jh.jobReference,jh2.shortArg,jh2.actionDate,jh2.userName,j.creationType,j.jobStatus,
+select j.id, j.secondNumber, jh.userName, jh.actionDate,jh.shortArg, jh.jobReference,jh2.shortArg,jh2.actionDate,jh2.userName,j.creationType,j.jobStatus,
 datepart(year,j.jobdate) 'JobYear',
 datepart(ISO_WEEK,j.jobdate) 'JobWeek',
 datepart(Month,j.jobdate) 'JobMonth',
@@ -1657,7 +1657,7 @@ formattable(tbl2_)
 
 
 ###Handbacks
-```{r }
+```{r error=TRUE }
 bookings$Count<-1
 bookings2<-bookings
 
@@ -1723,7 +1723,6 @@ MSBookings[(MSBookings$jobStatus==9 & MSBookings$userName!="Oscar" & MSBookings$
 
 #Lets try a  Cityfleet
 CityFleetBookings<-bookings[bookings$creationType ==16 & bookings$JobYear=="2017",]
-
 CityFleetBookings$result<-""
 CityFleetBookings[CityFleetBookings$jobStatus==7 ,"result"]<-"Complete"
 CityFleetBookings[CityFleetBookings$jobStatus==10 ,"result"]<-"COA"
@@ -1735,9 +1734,22 @@ CityFleetBookings[(CityFleetBookings$jobStatus==9 & CityFleetBookings$userName!=
 
 handbacks<-rbind(CityFleetBookings,MSBookings,OneTBookings,CabfindBookings)
 
-write.xlsx(handbacks,file= filename,sheetName = "Platforms",append = TRUE)
+# find duplicates in handbacks and keep only completed if they exist
+hb_num <- unique(handbacks$secondNumber)
 
-handbacks2<-as.data.frame(group_by(handbacks,result) %>% summarise(total =sum(Count)))
+for (each in hb_num) {
+  if ( nrow(handbacks[handbacks$secondNumber == each,]) > 1 ) {
+  #if there is a complete booking among duplicates convert all of them into completed
+    if (nrow(handbacks[handbacks$secondNumber == each & handbacks$result == 'Complete',]) > 0) {
+      handbacks[handbacks$secondNumber == each,]$result <- 'Complete'
+    } else if (nrow(handbacks[handbacks$secondNumber == each & handbacks$result == 'COA',])>0) {
+      handbacks[handbacks$secondNumber == each,]$result <- 'COA'
+    }
+   }
+}
+no_duplicate <- unique( handbacks[c('secondNumber', 'result', 'Count')] )
+write.xlsx(no_duplicate,file= filename,sheetName = "Platforms",append = TRUE)
+handbacks2<-as.data.frame(group_by(no_duplicate,result) %>% summarise(total =sum(Count)))
 
 
 handbacks2$pct<-0
