@@ -2234,6 +2234,7 @@ inputA<-c(inputA, c_auto,c_jobs-c_auto,c_jobs,round(c_auto/c_jobs*100,2))
 ###################################################################
 handbacks_platform<-handbacks[handbacks$result == "Handback",]
 
+
 ###add shifts to handbacks
 handbacks$shift <- 'N'
 if (nrow(handbacks[handbacks$TimeInMin >= 360 & handbacks$TimeInMin <= 1079,])>0) 
@@ -2243,10 +2244,10 @@ handbacks[handbacks$TimeInMin >= 360 &
             handbacks$actionDate > '2000-01-01 00:00:00',]$shift <- 'D'
 }
 
+handbacks <- handbacks[handbacks$result=="Handback",]
+handbacks <- unique(handbacks[c('secondNumber', 'Count', 'shift', 'creationType')])
 
-handbacks_platform2<-group_by(handbacks,creationType, result, shift)%>% summarise(total =sum(Count))
-
-handbacks_platform2<-handbacks_platform2[handbacks_platform2$result=="Handback",]
+handbacks_platform2<-group_by(handbacks, shift, creationType)%>% summarise(total =sum(Count))
 
 handbacks_platform2$creationType<-as.character(handbacks_platform2$creationType)
 handbackSummary <- data.frame(creationType=c(18,16,4,5,18,16,4,5), shift = c('D','D','D','D', 'N','N','N','N'))
