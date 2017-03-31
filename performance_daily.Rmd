@@ -285,8 +285,8 @@ declare @endDate date
 set @startDate = DATEADD(DAY, -2, getdate())
 set @endDate = DATEADD(DAY, -1, getdate()) + '23:59:59'
 select startDate,datepart(hour,startDate) 'Hour',DATEPART(minute,startDate) 'Minute', 
-case when pickupAddress like '%Terminal 5%' then 'TW6, Term5' else pickupAddress end 'pickupAddress', delay,serviceId, source
-from echo_core_prod..dynamic_delay_promises where (source = 8 or pickupAddress like '%Terminal 5%') and
+case when pickupAddress like '%TW6%' then 'TW6, Term5' else pickupAddress end 'pickupAddress', delay,serviceId, source
+from echo_core_prod..dynamic_delay_promises where (source = 8 or pickupAddress like '%TW6%') and
  startDate between  @startDate and @endDate 
                  
                      
