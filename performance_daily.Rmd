@@ -924,7 +924,7 @@ library(dplyr)
 
 #GTC Jobs working (but not the chart)
 file <- jobhistory
-yesterday <- as.Date(Sys.time()-(60*60*24))
+yesterday <-  as.Date(Sys.time()-(60*60*24))
     
 
 file <- file[grepl(yesterday, file$TimeAccepted) |  grepl(yesterday, file$TimeArrived) | grepl(yesterday, file$TimePoB) | grepl(yesterday, file$TimeCompleted),]
@@ -2262,7 +2262,7 @@ inputA<-c(inputA,handbackSummary[,"total"])
 ###################################################################
 
 #3am
-time<-as.POSIXct(yesterday+3/24)
+time<-as.POSIXct(paste(yesterday, '03:00:00'))
 driversSnap<-drivers[drivers$Timestamp >= (time-180) & drivers$Timestamp <= (time+180),]
 
 LoggedOn<-sum(driversSnap$OnlineDrivers)
@@ -2272,7 +2272,7 @@ Avail<-LoggedOn-snapshot[1]
 inputA<-c(inputA,snapshot[1],snapshotASAP[1],LoggedOn,LoggedOnGTC,Avail)
 
 #8am
-time<-as.POSIXct(yesterday+8/24)
+time<-as.POSIXct(paste(yesterday, '08:00:00'))
 driversSnap<-drivers[drivers$Timestamp >= (time-180) & drivers$Timestamp <= (time+180),]
 
 LoggedOn<-sum(driversSnap$OnlineDrivers)
@@ -2282,7 +2282,7 @@ Avail<-LoggedOn-snapshot[2]
 inputA<-c(inputA,snapshot[2],snapshotASAP[2],LoggedOn,LoggedOnGTC,Avail)
 
 #1pm
-time<-as.POSIXct(yesterday+13/24)
+time<-as.POSIXct(paste(yesterday, '13:00:00'))
 driversSnap<-drivers[drivers$Timestamp >= (time-180) & drivers$Timestamp <= (time+180),]
 
 LoggedOn<-sum(driversSnap$OnlineDrivers)
@@ -2293,7 +2293,7 @@ inputA<-c(inputA,snapshot[3],snapshotASAP[3],LoggedOn,LoggedOnGTC,Avail)
 
 
 #6pm
-time<-as.POSIXct(yesterday+18/24)
+time<-as.POSIXct(paste(yesterday, '18:00:00'))
 driversSnap<-drivers[drivers$Timestamp >= (time-180) & drivers$Timestamp <= (time+180),]
 
 LoggedOn<-sum(driversSnap$OnlineDrivers)
@@ -2304,7 +2304,7 @@ inputA<-c(inputA,snapshot[4],snapshotASAP[4],LoggedOn,LoggedOnGTC,Avail)
 
 
 #8pm
-time<-as.POSIXct(yesterday+20/24)
+time<-as.POSIXct(paste(yesterday, '20:00:00'))
 driversSnap<-drivers[drivers$Timestamp >= (time-180) & drivers$Timestamp <= (time+180),]
 
 LoggedOn<-sum(driversSnap$OnlineDrivers)
@@ -2314,7 +2314,7 @@ Avail<-LoggedOn-snapshot[5]
 inputA<-c(inputA,snapshot[5],snapshotASAP[5],LoggedOn,LoggedOnGTC,Avail)
 
 #11pm
-time<-as.POSIXct(yesterday+23/24)
+time<-as.POSIXct(paste(yesterday, '23:00:00'))
 driversSnap<-drivers[drivers$Timestamp >= (time-180) & drivers$Timestamp <= (time+180),]
 
 LoggedOn<-sum(driversSnap$OnlineDrivers)
