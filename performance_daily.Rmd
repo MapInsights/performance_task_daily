@@ -2208,7 +2208,7 @@ gs_edit_cells(lw,ws=1,input=lastweek,anchor='A1')
 
 
 
-```{r echo= FALSE,fig.width=18, fig.height=10,warning=FALSE, message= FALSE}
+```{r echo= FALSE,fig.width=18, fig.height=10,warning=FALSE, message= FALSE, error=FALSE}
 #Collecting all the info for Cons spreadsheet.
 
 #portal jobs
