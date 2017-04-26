@@ -106,6 +106,7 @@ j.jobStatus,
 j.actualDistance,
 j.totalDistance,
 j.totalPrice,
+j.creationType 'creationType1',
 case when j.creationType=0  then 'Echo'
 	 when j.creationType=1  then 'Web'
      when j.creationType=2  then 'IOS'
@@ -538,7 +539,7 @@ match <- c('TW6', 'RH6', 'CM24', 'E16', 'LU2')
 gtc <- gtc[!(gtc$PC %in% match),]
 
 # exclude one transport
-gtc <- gtc[!(gtc$creationType %in% c(5,16)),]
+gtc <- gtc[!(gtc$creationType1 %in% c(5,16)),]
 
 # exclude morgan stanley
 gtc <- gtc[(gtc$AccountNumber!='C6000'),]
@@ -1608,8 +1609,8 @@ lastweekName<-'forecast/LastWeek.xlsx'
 #Remove NAs which Gecko doesn't like
 lastweek[is.na(lastweek)]<-0
 
-lw<-gs_title('lastweek2')
-gs_edit_cells(lw,ws=1,input=lastweek,anchor='A1')
+#lw<-gs_title('lastweek2')
+#gs_edit_cells(lw,ws=1,input=lastweek,anchor='A1')
 
 
 
@@ -2187,8 +2188,8 @@ lastweekName<-'forecast/LastWeek.xlsx'
 #Remove NAs which Gecko doesn't like
 lastweek[is.na(lastweek)]<-0
 
-lw<-gs_title('lastweek2')
-gs_edit_cells(lw,ws=1,input=lastweek,anchor='A1')
+#lw<-gs_title('lastweek2')
+#gs_edit_cells(lw,ws=1,input=lastweek,anchor='A1')
 
 
 
