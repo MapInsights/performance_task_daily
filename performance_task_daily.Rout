@@ -35,6 +35,9 @@ The following objects are masked from 'package:base':
 
 Warning message:
 package 'dplyr' was built under R version 3.2.5 
+> library(flexdashboard)
+Warning message:
+package 'flexdashboard' was built under R version 3.2.5 
 > pacman::p_load(rmarkdown, knitr)
 > 
 > ## This will need to be changed to your local settings
@@ -55,22 +58,22 @@ package 'dplyr' was built under R version 3.2.5
 > 
 > 
 > # Go baby run the report
-> rmarkdown::render("performance_daily.Rmd", "html_document", output_dir = "reports")
+> rmarkdown::render("performance_daily.Rmd", output_dir = "reports" )
 
 
 processing file: performance_daily.Rmd
   |                                                                         |                                                                 |   0%  |                                                                         |.                                                                |   1%
   ordinary text without R code
 
-  |                                                                         |..                                                               |   3%
+  |                                                                         |.                                                                |   2%
 label: unnamed-chunk-1 (with options) 
 List of 1
  $ echo: logi FALSE
 
-  |                                                                         |...                                                              |   4%
+  |                                                                         |..                                                               |   3%
   ordinary text without R code
 
-  |                                                                         |....                                                             |   6%
+  |                                                                         |..                                                               |   4%
 label: unnamed-chunk-2 (with options) 
 List of 3
  $ echo   : logi FALSE
@@ -79,184 +82,115 @@ List of 3
 
 Loading required package: rJava
 Loading required package: xlsxjars
-  |                                                                         |.....                                                            |   7%
+
+Attaching package: 'plotly'
+
+The following object is masked from 'package:ggplot2':
+
+    last_plot
+
+The following object is masked from 'package:formattable':
+
+    style
+
+The following object is masked from 'package:stats':
+
+    filter
+
+The following object is masked from 'package:graphics':
+
+    layout
+
+  |                                                                         |...                                                              |   5%
   ordinary text without R code
 
-  |                                                                         |......                                                           |   9%
+  |                                                                         |....                                                             |   6%
 label: unnamed-chunk-3 (with options) 
 List of 3
  $ echo   : logi FALSE
  $ message: logi FALSE
  $ warning: logi FALSE
 
-  |                                                                         |......                                                           |  10%
+  |                                                                         |....                                                             |   7%
   ordinary text without R code
 
-  |                                                                         |.......                                                          |  11%
+  |                                                                         |.....                                                            |   8%
 label: unnamed-chunk-4 (with options) 
 List of 3
  $ echo   : logi FALSE
  $ message: logi FALSE
  $ warning: logi FALSE
 
-  |                                                                         |........                                                         |  13%
+  |                                                                         |......                                                           |   9%
   ordinary text without R code
 
-  |                                                                         |.........                                                        |  14%
-label: unnamed-chunk-5 (with options) 
-List of 3
- $ echo   : logi FALSE
- $ message: logi FALSE
- $ warning: logi FALSE
+  |                                                                         |......                                                           |  10%
+label: unnamed-chunk-5
+  |                                                                         |.......                                                          |  11%
+  ordinary text without R code
 
-  |                                                                         |..........                                                       |  16%
+  |                                                                         |........                                                         |  12%
+label: unnamed-chunk-6
+
+  ordinary text without R code
+
+  |                                                                         |.........                                                        |  13%
+label: unnamed-chunk-7
+  |                                                                         |.........                                                        |  14%
+  ordinary text without R code
+
+  |                                                                         |..........                                                       |  15%
+label: unnamed-chunk-8
+  |                                                                         |...........                                                      |  16%
   ordinary text without R code
 
   |                                                                         |...........                                                      |  17%
-label: day and night shifts performance (with options) 
-List of 3
- $ echo   : logi FALSE
- $ message: logi FALSE
- $ warning: logi FALSE
-
-  |                                                                         |............                                                     |  19%
+label: unnamed-chunk-9
+  |                                                                         |............                                                     |  18%
   ordinary text without R code
 
+  |                                                                         |............                                                     |  19%
+label: unnamed-chunk-10
   |                                                                         |.............                                                    |  20%
-label: unnamed-chunk-6 (with options) 
-List of 3
- $ echo   : logi FALSE
- $ message: logi FALSE
- $ warning: logi FALSE
+  ordinary text without R code
 
   |                                                                         |..............                                                   |  21%
+label: unnamed-chunk-11
+  |                                                                         |..............                                                   |  22%
   ordinary text without R code
 
   |                                                                         |...............                                                  |  23%
-label: unnamed-chunk-7 (with options) 
-List of 3
- $ echo   : logi FALSE
- $ message: logi FALSE
- $ warning: logi FALSE
-
+label: unnamed-chunk-12
   |                                                                         |................                                                 |  24%
   ordinary text without R code
 
+  |                                                                         |................                                                 |  25%
+label: unnamed-chunk-13
   |                                                                         |.................                                                |  26%
-label: unnamed-chunk-8 (with options) 
-List of 3
- $ echo   : logi FALSE
- $ message: logi FALSE
- $ warning: logi FALSE
+  ordinary text without R code
 
   |                                                                         |..................                                               |  27%
+label: unnamed-chunk-14
+  |                                                                         |..................                                               |  28%
   ordinary text without R code
 
   |                                                                         |...................                                              |  29%
-label: unnamed-chunk-9 (with options) 
-List of 5
- $ echo      : logi FALSE
- $ fig.width : num 18
- $ fig.height: num 10
- $ warning   : logi FALSE
- $ message   : logi FALSE
-
-  |                                                                         |....................                                             |  30%
+label: unnamed-chunk-15
+  |                                                                         |...................                                              |  30%
   ordinary text without R code
 
   |                                                                         |....................                                             |  31%
-label: unnamed-chunk-10 (with options) 
-List of 5
- $ echo      : logi FALSE
- $ fig.width : num 18
- $ fig.height: num 10
- $ warning   : logi FALSE
- $ message   : logi FALSE
+label: unnamed-chunk-16
+  |                                                                         |.....................                                            |  32%
+  ordinary text without R code
 
   |                                                                         |.....................                                            |  33%
-  ordinary text without R code
-
+label: unnamed-chunk-17
   |                                                                         |......................                                           |  34%
-label: unnamed-chunk-11 (with options) 
-List of 5
- $ echo      : logi FALSE
- $ fig.width : num 18
- $ fig.height: num 10
- $ warning   : logi FALSE
- $ message   : logi FALSE
-
-  |                                                                         |.......................                                          |  36%
   ordinary text without R code
 
-  |                                                                         |........................                                         |  37%
-label: unnamed-chunk-12 (with options) 
-List of 5
- $ echo      : logi FALSE
- $ fig.width : num 18
- $ fig.height: num 10
- $ warning   : logi FALSE
- $ message   : logi FALSE
-
-  |                                                                         |.........................                                        |  39%
-  ordinary text without R code
-
-  |                                                                         |..........................                                       |  40%
-label: unnamed-chunk-13 (with options) 
-List of 5
- $ echo      : logi FALSE
- $ fig.width : num 18
- $ fig.height: num 10
- $ warning   : logi FALSE
- $ message   : logi FALSE
-
-  |                                                                         |...........................                                      |  41%
-  ordinary text without R code
-
-  |                                                                         |............................                                     |  43%
-label: unnamed-chunk-14 (with options) 
-List of 5
- $ echo      : logi FALSE
- $ fig.width : num 18
- $ fig.height: num 10
- $ warning   : logi FALSE
- $ message   : logi FALSE
-
-  |                                                                         |.............................                                    |  44%
-  ordinary text without R code
-
-  |                                                                         |..............................                                   |  46%
-label: unnamed-chunk-15 (with options) 
-List of 5
- $ echo      : logi FALSE
- $ fig.width : num 18
- $ fig.height: num 10
- $ warning   : logi FALSE
- $ message   : logi FALSE
-
-  |                                                                         |...............................                                  |  47%
-  ordinary text without R code
-
-  |                                                                         |................................                                 |  49%
-label: unnamed-chunk-16 (with options) 
-List of 5
- $ echo      : logi FALSE
- $ fig.width : num 18
- $ fig.height: num 10
- $ warning   : logi FALSE
- $ message   : logi FALSE
-
-  |                                                                         |................................                                 |  50%
-  ordinary text without R code
-
-  |                                                                         |.................................                                |  51%
-label: unnamed-chunk-17 (with options) 
-List of 5
- $ echo      : logi FALSE
- $ fig.width : num 18
- $ fig.height: num 10
- $ warning   : logi FALSE
- $ message   : logi FALSE
-
+  |                                                                         |......................                                           |  35%
+label: unnamed-chunk-18
 -------------------------------------------------------------------------
 You have loaded plyr after dplyr - this is likely to cause problems.
 If you need functions from both plyr and dplyr, please load plyr first, then dplyr:
@@ -268,6 +202,10 @@ Attaching package: 'plyr'
 The following object is masked from 'package:lubridate':
 
     here
+
+The following objects are masked from 'package:plotly':
+
+    arrange, mutate, rename, summarise
 
 The following objects are masked from 'package:dplyr':
 
@@ -314,217 +252,262 @@ The following objects are masked from 'package:base':
 
     intersect, setdiff, setequal, union
 
+  |                                                                         |.......................                                          |  36%
+  ordinary text without R code
+
+  |                                                                         |........................                                         |  37%
+label: unnamed-chunk-19 (with options) 
+List of 5
+ $ echo      : logi FALSE
+ $ fig.width : num 12
+ $ fig.height: num 8
+ $ warning   : logi FALSE
+ $ message   : logi FALSE
+
+  |                                                                         |........................                                         |  38%
+  ordinary text without R code
+
+  |                                                                         |.........................                                        |  38%
+label: unnamed-chunk-20 (with options) 
+List of 5
+ $ echo      : logi FALSE
+ $ fig.width : num 12
+ $ fig.height: num 8
+ $ warning   : logi FALSE
+ $ message   : logi FALSE
+
+  |                                                                         |..........................                                       |  39%
+  ordinary text without R code
+
+  |                                                                         |..........................                                       |  40%
+label: unnamed-chunk-21
+  |                                                                         |...........................                                      |  41%
+  ordinary text without R code
+
+  |                                                                         |............................                                     |  42%
+label: unnamed-chunk-22
+  |                                                                         |............................                                     |  43%
+  ordinary text without R code
+
+  |                                                                         |.............................                                    |  44%
+label: unnamed-chunk-23
+  |                                                                         |.............................                                    |  45%
+  ordinary text without R code
+
+  |                                                                         |..............................                                   |  46%
+label: unnamed-chunk-24
+  |                                                                         |...............................                                  |  47%
+  ordinary text without R code
+
+  |                                                                         |...............................                                  |  48%
+label: unnamed-chunk-25
+  |                                                                         |................................                                 |  49%
+  ordinary text without R code
+
+  |                                                                         |................................                                 |  50%
+label: unnamed-chunk-26
+  |                                                                         |.................................                                |  51%
+  ordinary text without R code
+
+  |                                                                         |..................................                               |  52%
+label: unnamed-chunk-27
   |                                                                         |..................................                               |  53%
   ordinary text without R code
 
   |                                                                         |...................................                              |  54%
-label: unnamed-chunk-18 (with options) 
-List of 5
- $ echo      : logi FALSE
- $ fig.width : num 18
- $ fig.height: num 10
- $ warning   : logi FALSE
- $ message   : logi FALSE
-
-  |                                                                         |....................................                             |  56%
+label: unnamed-chunk-28
+  |                                                                         |....................................                             |  55%
   ordinary text without R code
 
+  |                                                                         |....................................                             |  56%
+label: unnamed-chunk-29
   |                                                                         |.....................................                            |  57%
-label: unnamed-chunk-19 (with options) 
-List of 5
- $ echo      : logi FALSE
- $ fig.width : num 18
- $ fig.height: num 10
- $ warning   : logi FALSE
- $ message   : logi FALSE
+  ordinary text without R code
 
+  |                                                                         |......................................                           |  58%
+label: unnamed-chunk-30
   |                                                                         |......................................                           |  59%
   ordinary text without R code
 
   |                                                                         |.......................................                          |  60%
-label: unnamed-chunk-20 (with options) 
-List of 5
- $ echo      : logi FALSE
- $ fig.width : num 18
- $ fig.height: num 10
- $ warning   : logi FALSE
- $ message   : logi FALSE
+label: unnamed-chunk-31
+  |                                                                         |.......................................                          |  61%
+  ordinary text without R code
 
-  |                                                                         |........................................                         |  61%
+  |                                                                         |........................................                         |  62%
+label: unnamed-chunk-32 (with options) 
+List of 1
+ $ fig.width: num 8
+
+  |                                                                         |.........................................                        |  62%
   ordinary text without R code
 
   |                                                                         |.........................................                        |  63%
-label: unnamed-chunk-21 (with options) 
-List of 3
- $ echo   : logi FALSE
- $ message: logi FALSE
- $ warning: logi FALSE
-
+label: unnamed-chunk-33
   |                                                                         |..........................................                       |  64%
   ordinary text without R code
 
+  |                                                                         |..........................................                       |  65%
+label: unnamed-chunk-34
   |                                                                         |...........................................                      |  66%
-label: unnamed-chunk-22 (with options) 
-List of 3
- $ echo   : logi FALSE
- $ message: logi FALSE
- $ warning: logi FALSE
+  ordinary text without R code
 
   |                                                                         |............................................                     |  67%
+label: unnamed-chunk-35
+  |                                                                         |............................................                     |  68%
   ordinary text without R code
 
   |                                                                         |.............................................                    |  69%
-label: unnamed-chunk-23 (with options) 
-List of 5
- $ echo      : logi FALSE
- $ fig.width : num 18
- $ fig.height: num 10
- $ warning   : logi FALSE
- $ message   : logi FALSE
-
+label: unnamed-chunk-36
   |                                                                         |..............................................                   |  70%
   ordinary text without R code
 
   |                                                                         |..............................................                   |  71%
-label: unnamed-chunk-24 (with options) 
-List of 5
- $ echo      : logi FALSE
- $ fig.width : num 18
- $ fig.height: num 10
- $ warning   : logi FALSE
- $ message   : logi FALSE
-
-  |                                                                         |...............................................                  |  73%
+label: unnamed-chunk-37
+Auto-refreshing stale OAuth token.
+Sheet successfully identified: "lastweek2"
+Range affected by the update: "A1:X10"
+Worksheet "Sheet1" successfully updated with 240 new value(s).
+  |                                                                         |...............................................                  |  72%
   ordinary text without R code
 
+  |                                                                         |................................................                 |  73%
+label: unnamed-chunk-38
   |                                                                         |................................................                 |  74%
-label: unnamed-chunk-25 (with options) 
-List of 5
- $ echo      : logi FALSE
- $ fig.width : num 18
- $ fig.height: num 10
- $ warning   : logi FALSE
- $ message   : logi FALSE
+  ordinary text without R code
+
+  |                                                                         |.................................................                |  75%
+label: unnamed-chunk-39 (with options) 
+List of 1
+ $ error: logi TRUE
 
   |                                                                         |.................................................                |  76%
   ordinary text without R code
 
   |                                                                         |..................................................               |  77%
-label: unnamed-chunk-26 (with options) 
-List of 5
- $ echo      : logi FALSE
- $ fig.width : num 18
- $ fig.height: num 10
- $ warning   : logi FALSE
- $ message   : logi FALSE
-
-  |                                                                         |...................................................              |  79%
+label: unnamed-chunk-40
+  |                                                                         |...................................................              |  78%
   ordinary text without R code
 
-  |                                                                         |....................................................             |  80%
-label: unnamed-chunk-27 (with options) 
+  |                                                                         |...................................................              |  79%
+label: unnamed-chunk-41 (with options) 
 List of 5
  $ echo      : logi FALSE
  $ fig.width : num 18
- $ fig.height: num 10
+ $ fig.height: num 8
  $ warning   : logi FALSE
  $ message   : logi FALSE
 
-  |                                                                         |.....................................................            |  81%
+  |                                                                         |....................................................             |  80%
+  ordinary text without R code
+
+  |                                                                         |....................................................             |  81%
+label: unnamed-chunk-42 (with options) 
+List of 5
+ $ echo      : logi FALSE
+ $ fig.width : num 18
+ $ fig.height: num 8
+ $ warning   : logi FALSE
+ $ message   : logi FALSE
+
+  |                                                                         |.....................................................            |  82%
   ordinary text without R code
 
   |                                                                         |......................................................           |  83%
-label: unnamed-chunk-28 (with options) 
+label: unnamed-chunk-43 (with options) 
 List of 5
  $ echo      : logi FALSE
  $ fig.width : num 18
- $ fig.height: num 10
+ $ fig.height: num 8
  $ warning   : logi FALSE
  $ message   : logi FALSE
 
-  |                                                                         |.......................................................          |  84%
+  |                                                                         |......................................................           |  84%
   ordinary text without R code
+
+  |                                                                         |.......................................................          |  85%
+label: unnamed-chunk-44 (with options) 
+List of 5
+ $ echo      : logi FALSE
+ $ fig.width : num 18
+ $ fig.height: num 8
+ $ warning   : logi FALSE
+ $ message   : logi FALSE
 
   |                                                                         |........................................................         |  86%
-label: unnamed-chunk-29 (with options) 
+  ordinary text without R code
+
+  |                                                                         |........................................................         |  87%
+label: unnamed-chunk-45 (with options) 
 List of 5
  $ echo      : logi FALSE
  $ fig.width : num 18
- $ fig.height: num 10
+ $ fig.height: num 8
  $ warning   : logi FALSE
  $ message   : logi FALSE
 
-  |                                                                         |.........................................................        |  87%
+  |                                                                         |.........................................................        |  88%
   ordinary text without R code
+
+  |                                                                         |..........................................................       |  88%
+label: unnamed-chunk-46 (with options) 
+List of 5
+ $ echo      : logi FALSE
+ $ fig.width : num 18
+ $ fig.height: num 8
+ $ warning   : logi FALSE
+ $ message   : logi FALSE
 
   |                                                                         |..........................................................       |  89%
-label: unnamed-chunk-30 (with options) 
-List of 5
- $ echo      : logi FALSE
- $ fig.width : num 18
- $ fig.height: num 10
- $ warning   : logi FALSE
- $ message   : logi FALSE
-
-  |                                                                         |..........................................................       |  90%
   ordinary text without R code
 
+  |                                                                         |...........................................................      |  90%
+label: unnamed-chunk-47
   |                                                                         |...........................................................      |  91%
-label: unnamed-chunk-31 (with options) 
-List of 5
- $ echo      : logi FALSE
- $ fig.width : num 18
- $ fig.height: num 10
- $ warning   : logi FALSE
- $ message   : logi FALSE
+  ordinary text without R code
 
-  |                                                                         |............................................................     |  93%
+  |                                                                         |............................................................     |  92%
+label: unnamed-chunk-48
+  |                                                                         |.............................................................    |  93%
   ordinary text without R code
 
   |                                                                         |.............................................................    |  94%
-label: unnamed-chunk-32 (with options) 
-List of 5
- $ echo      : logi FALSE
- $ fig.width : num 18
- $ fig.height: num 10
- $ warning   : logi FALSE
- $ message   : logi FALSE
-
-Auto-refreshing stale OAuth token.
-Sheet successfully identified: "lastweek2"
-Range affected by the update: "A1:N10"
-Worksheet "Sheet1" successfully updated with 140 new value(s).
-  |                                                                         |..............................................................   |  96%
+label: unnamed-chunk-49
+  |                                                                         |..............................................................   |  95%
   ordinary text without R code
 
+  |                                                                         |..............................................................   |  96%
+label: unnamed-chunk-50
   |                                                                         |...............................................................  |  97%
-label: unnamed-chunk-33 (with options) 
-List of 5
- $ echo      : logi FALSE
- $ fig.width : num 18
- $ fig.height: num 10
- $ warning   : logi FALSE
- $ message   : logi FALSE
+  ordinary text without R code
 
+  |                                                                         |................................................................ |  98%
+label: unnamed-chunk-51
   |                                                                         |................................................................ |  99%
   ordinary text without R code
 
   |                                                                         |.................................................................| 100%
-label: unnamed-chunk-34 (with options) 
-List of 5
+label: unnamed-chunk-52 (with options) 
+List of 6
  $ echo      : logi FALSE
  $ fig.width : num 18
  $ fig.height: num 10
  $ warning   : logi FALSE
  $ message   : logi FALSE
+ $ error     : logi FALSE
 
 
 output file: performance_daily.knit.md
 
-"C:/PROGRA~2/Pandoc/pandoc" +RTS -K512m -RTS performance_daily.utf8.md --to html --from markdown+autolink_bare_uris+ascii_identifiers+tex_math_single_backslash-implicit_figures --output "C:/Programs/gtc_tasks/performance_task_daily/reports/performance_daily.html" --smart --email-obfuscation none --self-contained --standalone --section-divs --template "C:\Users\daria.alekseeva\Documents\R\win-library\3.2\rmarkdown\rmd\h\default.html" --variable "theme:bootstrap" --include-in-header "C:\Users\DARIA~1.ALE\AppData\Local\Temp\Rtmp6Jzltw\rmarkdown-str20301e973757.html" --mathjax --variable "mathjax-url:https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML" --no-highlight --variable "highlightjs=C:\Users\daria.alekseeva\Documents\R\win-library\3.2\rmarkdown\rmd\h\highlight" 
+"C:/PROGRA~2/Pandoc/pandoc" +RTS -K512m -RTS performance_daily.utf8.md --to html --from markdown+autolink_bare_uris+ascii_identifiers+tex_math_single_backslash --output pandoc1b5c2d5339c3.html --smart --email-obfuscation none --self-contained --standalone --section-divs --template "C:\Users\daria.alekseeva\Documents\R\win-library\3.2\flexdashboard\rmarkdown\templates\flex_dashboard\resources\default.html" --include-in-header "C:\Users\DARIA~1.ALE\AppData\Local\Temp\RtmpQVYHvw\rmarkdown-str1b5c705d3c0a.html" --variable "theme:flatly" --include-in-header "C:\Users\DARIA~1.ALE\AppData\Local\Temp\RtmpQVYHvw\rmarkdown-str1b5c76bc5c4f.html" --mathjax --variable "mathjax-url:https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML" --include-in-header "C:\Users\DARIA~1.ALE\AppData\Local\Temp\RtmpQVYHvw\file1b5c6bb422b7html" --include-before-body "C:\Users\DARIA~1.ALE\AppData\Local\Temp\RtmpQVYHvw\file1b5c4b781ea6.html" --highlight-style pygments --include-before-body "C:\Users\DARIA~1.ALE\AppData\Local\Temp\RtmpQVYHvw\file1b5c44382ddc.html" --include-after-body "C:\Users\DARIA~1.ALE\AppData\Local\Temp\RtmpQVYHvw\file1b5c5f2ee1e.html" 
 
 Output created: reports/performance_daily.html
 There were 50 or more warnings (use warnings() to see the first 50)
+> 
+> # zip dashboard file
+> #setwd(reports_dir)
+> #zip(zipfile = 'performance_daily', files = 'performance_daily.html')
+> 
 > 
 > # Get the list of the generated files 
 > html_files <- list.files(reports_dir, recursive=TRUE)
@@ -536,7 +519,7 @@ There were 50 or more warnings (use warnings() to see the first 50)
 > xlsx_name <- paste(as.Date(Sys.time() - (60*60*24)), "_", "results.xlsx", sep = '')
 >   
 > # Create mail lists
-> base_list <- "McGarry.Con@greentomatocars.com;Daria.Alekseeva@greentomatocars.com;Julia.Thomas@transdevplc.co.uk);James.Rowe@greentomatocars.com;sean.sauter@transdevplc.co.uk;Christina.Stone@greentomatocars.com;Ian.Bates@greentomatocars.com;Lee.Holland@greentomatocars.com;controldesk@greentomatocars.com;Duncan.Fendom@greentomatocars.com;maxim.starostin@magenta-technology.com;petr.popov@magenta-technology.com;Paul.Jobling@greentomatocars.com;Tyrone.Hunte@greentomatocars.com;antony.carolan@greentomatocars.com;Haider.Variava@greentomatocars.com;Sophie.Jacobsen@greentomatocars.com;Moses.Adegoroye@greentomatocars.com;Tim.Stone@greentomatocars.com;Andrew.Middleton@greentomatocars.com;Tahir.Nazir@greentomatocars.com"
+> base_list <- "McGarry.Con@greentomatocars.com;Daria.Alekseeva@greentomatocars.com;Julia.Thomas@transdevplc.co.uk);James.Rowe@greentomatocars.com;sean.sauter@transdevplc.co.uk;Christina.Stone@greentomatocars.com;Ian.Bates@greentomatocars.com;Lee.Holland@greentomatocars.com;controldesk@greentomatocars.com;Duncan.Fendom@greentomatocars.com;maxim.starostin@magenta-technology.com;petr.popov@magenta-technology.com;Paul.Jobling@greentomatocars.com;Tyrone.Hunte@greentomatocars.com;antony.carolan@greentomatocars.com;Haider.Variava@greentomatocars.com;Sophie.Jacobsen@greentomatocars.com;Moses.Adegoroye@greentomatocars.com;Tim.Stone@greentomatocars.com;Andrew.Middleton@greentomatocars.com;Tahir.Nazir@greentomatocars.com;Sales@greentomatocars.com;Sujas.Parikh@greentomatocars.com;Haris.Khan@greentomatocars.com"
 > #daily_list <- "Daria.Alekseeva@greentomatocars.com"
 > 
 > # Send mail for each client and attach html report + spreadsheet
@@ -551,17 +534,18 @@ There were 50 or more warnings (use warnings() to see the first 50)
 > outMail[["Attachments"]]$Add(paste(reports_dir,'performance_daily.html', sep='/'))
 An object of class "COMIDispatch"
 Slot "ref":
-<pointer: 0x000000000024dcd8>
+<pointer: 0x0000000060e099e8>
 
 > outMail[["Attachments"]]$Add(paste(spreadsheets_dir,xlsx_name, sep='/'))
 An object of class "COMIDispatch"
 Slot "ref":
-<pointer: 0x000000000024ddb8>
+<pointer: 0x0000000060e09ac8>
 
 > outMail$Send()
 [1] TRUE
 > rm(list = c("OutApp","outMail"))
 > 
+> 
 > proc.time()
    user  system elapsed 
-  69.57    5.33  151.66 
+  71.10    2.77  146.47 

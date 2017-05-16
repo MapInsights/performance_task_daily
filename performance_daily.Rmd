@@ -20,7 +20,11 @@ start
 
 
 ```{r echo=FALSE, message=FALSE,warning=FALSE}
-#gtc <- rbind(gtc, gtc1)
+# elegant way of installing packages if missing
+list.of.packages <- c("ggplot2", "flexdashboard", "formattable", "stringr", "dplyr", "ggplot2", "xlsx", "rJava", "plotly", "flexdashboard", "RODBC", "googlesheets", "rdrop2")
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+if(length(new.packages)) install.packages(new.packages)
+
 library(flexdashboard)
 library(formattable)
 library(stringr)
@@ -28,10 +32,14 @@ library(dplyr)
 library(ggplot2)
 library(xlsx)
 library(rJava)
-library(plotly)
+require(plotly)
 library(flexdashboard)
-#setwd('H:/performance_task_daily')
-#setwd('C:/Users/daria.alekseeva/Documents/Analysis/cloned_repos/performance_task_daily')
+library(RODBC)
+library(googlesheets)
+library(rdrop2)
+
+
+#setwd('E:/AllMyDocs/Analysis/cloned_repos/performance_task_daily')
 setwd('C:/Programs/gtc_tasks/performance_task_daily/')
 #setwd('D:/git/performance_task_daily/')
 
@@ -82,8 +90,7 @@ dropname <-"spreadsheets/results.csv"
 filename <- paste(start, "_", "results.xlsx", sep = '')
 filename <- paste("spreadsheets/",filename,sep="")
 # load package for sql
-library(DBI)
-library(RODBC)
+
 # connect to database
 #odbcChannel <- odbcConnect('echo_core', uid='Daria Alekseeva', pwd='Welcome30')
 odbcChannel <- odbcConnect('Rstudio', uid='Daria Alekseeva', pwd='Welcome30')
@@ -336,11 +343,11 @@ where --jh.shortArg = 'Cancelled'
 and j.jobStatus in (7,9,10)
 and j.jobDate between @yesterdayFROM and @yesterdayTO")
 
-odbcClose(odbcChannel)
+#odbcClose(odbcChannel)
 
 ###New ODBC channel
 
-odbcChannel <- odbcConnect('echo_core', uid='Daria Alekseeva', pwd='Welcome30')
+#odbcChannel <- odbcConnect('echo_core', uid='Daria Alekseeva', pwd='Welcome30')
 #odbcChannel <- odbcConnect('echo_prod', uid='Daria Alekseeva', pwd='Welcome30')
 
 
@@ -762,10 +769,48 @@ df_performance_NS_3min$Percent <- round((df_performance_NS_3min$JobSum / df_perf
 ```
 
 
+```{r }
+### Yesterday jobs up to 3 min late in %% 
+### TOTAL figure per day
+
+# calculate performance ontime
+performance_3min<-gtc[gtc$arrival_bucket == '20+ min early'
+              |  gtc$arrival_bucket == '10-20 min early'
+              |  gtc$arrival_bucket == '6-10 min early'
+              |  gtc$arrival_bucket == '4-5 min early'
+              |  gtc$arrival_bucket == '1-3 min early'
+              |  gtc$arrival_bucket == 'On time'
+              |  gtc$arrival_bucket == '1-3 min late',]
+
+
+# calculater overhall performance and per shift
+df_per_date <- group_by(gtc, Date) %>%
+  summarise(JobTotal = sum(Count))
+df_performance_3min <- group_by(performance_3min, Date) %>%
+  summarise(JobSum = sum(Count))
+df_performance_3min <- merge(df_performance_3min, df_per_date, by = c('Date') )
+df_performance_3min$Percent <- round((df_performance_3min$JobSum / df_performance_3min$JobTotal)*100,2)
+# save table to use in inputA
+daily_perf <- df_performance_3min$Percent
+```
+
+
+
 Row {data-height=300} 
 -------------------------------------
 
+
+
+### Daily performance  
+
+```{r fig.width= 1 }
+
+valueBox(daily_perf,
+         color = "#0f8a39")
+```
+
 ###Daily performance statistics
+
 
 ```{r }
 day<-c(ds,df_performance_DS_3min$Percent,df_performance_DS_ontime$Percent)
@@ -1589,9 +1634,6 @@ CRM_Account<-CRMQuery[CRMQuery$customer_account_id != "3743",]
 CRMCountAccount<-nrow(CRM_Account)
 CRMRatioAccount<-round(CRMCountAccount/(nrow(PreAcc)+nrow(asapAcc))*100,2)
 
-library(googlesheets)
-library(rdrop2)
-
 
 accountPre<-accounts_arrivaltype[accounts_arrivaltype$Type2=="prebook_account","OnTimePct"]
 accountASAP<-accounts_arrivaltype[accounts_arrivaltype$Type2=="asap_account","OnTimePct"]
@@ -2356,7 +2398,10 @@ inputA <- c(inputA, dl_summary)
 
 #Activity
 ###################################################################
-inputA<-c(inputA,tblJobs["Total","G10"],tblJobs["Total","Account"],tblJobs["Total","Total"],DeadMilesSum,DeadMilesMean)
+j_sh_acc = group_by(gtc, Type, shift) %>% summarise(Count = sum(Count))
+j_sh = group_by(gtc, shift) %>% summarise(Count = sum(Count))
+
+inputA<-c(inputA, j_sh_acc$Count[3],  j_sh_acc$Count[1], j_sh$Count[1], j_sh_acc$Count[4],   j_sh_acc$Count[2], j_sh$Count[2], tblJobs["Total","G10"],tblJobs["Total","Account"],tblJobs["Total","Total"],DeadMilesSum,DeadMilesMean)
 
 
 #Service Type
@@ -2447,6 +2492,12 @@ colnames(inputA)<-c(
                     'NightASA',
                     'NightBookingsCreated',	
                     'NightCalls:Hours',	
+                    'G10DayJobs',
+                    'AccountDayJobs',
+                    'TotalDayJobs',
+                    'G10NightJobs',
+                    'AccountNightJobs',
+                    'TotalNightJobs',
                     "G10 JOBS",
                     "ACCOUNT JOBS",
                     "TOTAL JOBS",

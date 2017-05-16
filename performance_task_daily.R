@@ -55,3 +55,4 @@ outMail[["Attachments"]]$Add(paste(reports_dir,'performance_daily.html', sep='/'
 outMail[["Attachments"]]$Add(paste(spreadsheets_dir,xlsx_name, sep='/'))
 outMail$Send()
 rm(list = c("OutApp","outMail"))
+
