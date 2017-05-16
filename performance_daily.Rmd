@@ -556,37 +556,37 @@ gtc <- gtc[!is.na(gtc$MinDiff),]
 gtc$arrival_bucket <- '0'
 
 if (nrow(gtc[gtc$MinDiff > 20 ,])>0) {
-gtc[gtc$MinDiff > 20 ,]$arrival_bucket <- '20+ min late'}
+gtc[gtc$MinDiff > 20 ,"arrival_bucket"] <- '20+ min late'}
 
 if (nrow(gtc[gtc$MinDiff > 10 & gtc$MinDiff <= 20,])>0) {
-gtc[gtc$MinDiff > 10 & gtc$MinDiff <= 20,]$arrival_bucket <- '10-20 min late'}
+gtc[gtc$MinDiff > 10 & gtc$MinDiff <= 20,"arrival_bucket"] <- '10-20 min late'}
 
 if (nrow(gtc[gtc$MinDiff > 5 & gtc$MinDiff <= 10,])>0) {
-gtc[gtc$MinDiff > 5 & gtc$MinDiff <= 10,]$arrival_bucket <- '6-10 min late'}
+gtc[gtc$MinDiff > 5 & gtc$MinDiff <= 10,"arrival_bucket"] <- '6-10 min late'}
 
 if (nrow(gtc[gtc$MinDiff > 5 & gtc$MinDiff <= 10,])>0) {
-gtc[gtc$MinDiff > 3 & gtc$MinDiff <= 5,]$arrival_bucket <- '4-5 min late'}
+gtc[gtc$MinDiff > 3 & gtc$MinDiff <= 5,"arrival_bucket"] <- '4-5 min late'}
 
 if (nrow(gtc[gtc$MinDiff >= 1 & gtc$MinDiff <= 3,])>0) {
-gtc[gtc$MinDiff >= 1 & gtc$MinDiff <= 3,]$arrival_bucket <- '1-3 min late'}
+gtc[gtc$MinDiff >= 1 & gtc$MinDiff <= 3,"arrival_bucket"] <- '1-3 min late'}
 
 if (nrow(gtc[gtc$MinDiff == 0,])>0 ) {
-gtc[gtc$MinDiff == 0,]$arrival_bucket <- 'On time'}
+gtc[gtc$MinDiff == 0,"arrival_bucket"] <- 'On time'}
 
 if (nrow(gtc[gtc$MinDiff <= (-1) & gtc$MinDiff >= (-3),])>0) {
-gtc[gtc$MinDiff <= (-1) & gtc$MinDiff >= (-3),]$arrival_bucket <- '1-3 min early'}
+gtc[gtc$MinDiff <= (-1) & gtc$MinDiff >= (-3),"arrival_bucket"] <- '1-3 min early'}
 
 if (nrow(gtc[gtc$MinDiff < (-3) & gtc$MinDiff >= (-5),])>0) {
-gtc[gtc$MinDiff < (-3) & gtc$MinDiff >= (-5),]$arrival_bucket <- '4-5 min early'}
+gtc[gtc$MinDiff < (-3) & gtc$MinDiff >= (-5),"arrival_bucket"] <- '4-5 min early'}
 
 if (nrow(gtc[gtc$MinDiff < (-5) & gtc$MinDiff >= (-10),])>0) {
-gtc[gtc$MinDiff < (-5) & gtc$MinDiff >= (-10),]$arrival_bucket <- '6-10 min early'}
+gtc[gtc$MinDiff < (-5) & gtc$MinDiff >= (-10),"arrival_bucket"] <- '6-10 min early'}
 
 if (nrow(gtc[gtc$MinDiff < (-10) & gtc$MinDiff >= (-20),])>0) {
-gtc[gtc$MinDiff < (-10) & gtc$MinDiff >= (-20),]$arrival_bucket <- '10-20 min early'}
+gtc[gtc$MinDiff < (-10) & gtc$MinDiff >= (-20),"arrival_bucket"] <- '10-20 min early'}
 
 if (nrow(gtc[gtc$MinDiff < (-20) ,])>0) {
-gtc[gtc$MinDiff < (-20) ,]$arrival_bucket <- '20+ min early'}
+gtc[gtc$MinDiff < (-20) ,"arrival_bucket"] <- '20+ min early'}
 
 
 dayshift <- gtc[gtc$shift == 'DayShift',]
@@ -1271,27 +1271,27 @@ Row {data-width=700}
 #### MORE DETAILED ARRIVALS
 gtc$arrival_bucket <- '0'
 
-gtc[gtc$MinDiff > 20 ,]$arrival_bucket <- '20+ min late'
+gtc[gtc$MinDiff > 20 ,"arrival_bucket"] <- '20+ min late'
 
-gtc[gtc$MinDiff > 10 & gtc$MinDiff <= 20,]$arrival_bucket <- '10-20 min late'
+gtc[gtc$MinDiff > 10 & gtc$MinDiff <= 20,"arrival_bucket"] <- '10-20 min late'
 
-gtc[gtc$MinDiff > 5 & gtc$MinDiff <= 10,]$arrival_bucket <- '6-10 min late'
+gtc[gtc$MinDiff > 5 & gtc$MinDiff <= 10,"arrival_bucket"] <- '6-10 min late'
 
-gtc[gtc$MinDiff > 3 & gtc$MinDiff <= 5,]$arrival_bucket <- '4-5 min late'
+gtc[gtc$MinDiff > 3 & gtc$MinDiff <= 5,"arrival_bucket"] <- '4-5 min late'
 
-gtc[gtc$MinDiff >= 1 & gtc$MinDiff <= 3,]$arrival_bucket <- '1-3 min late'
+gtc[gtc$MinDiff >= 1 & gtc$MinDiff <= 3,"arrival_bucket"] <- '1-3 min late'
 
-gtc[gtc$MinDiff == 0,]$arrival_bucket <- 'On time'
+gtc[gtc$MinDiff == 0,"arrival_bucket"] <- 'On time'
 
-gtc[gtc$MinDiff <= (-1) & gtc$MinDiff >= (-3),]$arrival_bucket <- '1-3 min early'
+gtc[gtc$MinDiff <= (-1) & gtc$MinDiff >= (-3),"arrival_bucket"] <- '1-3 min early'
 
-gtc[gtc$MinDiff < (-3) & gtc$MinDiff >= (-5),]$arrival_bucket <- '4-5 min early'
+gtc[gtc$MinDiff < (-3) & gtc$MinDiff >= (-5),"arrival_bucket"] <- '4-5 min early'
 
-gtc[gtc$MinDiff < (-5) & gtc$MinDiff >= (-10),]$arrival_bucket <- '6-10 min early'
+gtc[gtc$MinDiff < (-5) & gtc$MinDiff >= (-10),"arrival_bucket"] <- '6-10 min early'
 
-gtc[gtc$MinDiff < (-10) & gtc$MinDiff >= (-20),]$arrival_bucket <- '10-20 min early'
+gtc[gtc$MinDiff < (-10) & gtc$MinDiff >= (-20),"arrival_bucket"] <- '10-20 min early'
 
-gtc[gtc$MinDiff < (-20) ,]$arrival_bucket <- '20+ min early'
+gtc[gtc$MinDiff < (-20) ,"arrival_bucket"] <- '20+ min early'
 
 ```
 
@@ -1358,16 +1358,16 @@ ggplot(df_performance_3min, aes(x = Hour, y = Percent, fill = Percent_bucket)) +
 
 gtc$arrival_bucket <- '0'
 
-gtc[gtc$MinDiff >= (-3) & gtc$MinDiff <= 3,]$arrival_bucket <- 'On time (-3,+3)'
+gtc[gtc$MinDiff >= (-3) & gtc$MinDiff <= 3,"arrival_bucket"] <- 'On time (-3,+3)'
 
 
 
-gtc[gtc$MinDiff > 3 & gtc$MinDiff <= 10,]$arrival_bucket <- '4-10 min late'
-gtc[gtc$MinDiff > 10 ,]$arrival_bucket <- '10+ min late'
+gtc[gtc$MinDiff > 3 & gtc$MinDiff <= 10,"arrival_bucket"] <- '4-10 min late'
+gtc[gtc$MinDiff > 10 ,"arrival_bucket"] <- '10+ min late'
 
-gtc[gtc$MinDiff < (-3) & gtc$MinDiff >= (-10),]$arrival_bucket <- '4-10 min early'
-gtc[gtc$MinDiff < (-10) & gtc$MinDiff >= (-30),]$arrival_bucket <- '10-30 min early'
-gtc[gtc$MinDiff < (-30) ,]$arrival_bucket <- '30+ min early'
+gtc[gtc$MinDiff < (-3) & gtc$MinDiff >= (-10),"arrival_bucket"] <- '4-10 min early'
+gtc[gtc$MinDiff < (-10) & gtc$MinDiff >= (-30),"arrival_bucket"] <- '10-30 min early'
+gtc[gtc$MinDiff < (-30) ,"arrival_bucket"] <- '30+ min early'
 
 
 # calculate total jobs per date and hour
@@ -1609,8 +1609,8 @@ lastweekName<-'forecast/LastWeek.xlsx'
 #Remove NAs which Gecko doesn't like
 lastweek[is.na(lastweek)]<-0
 
-#lw<-gs_title('lastweek2')
-#gs_edit_cells(lw,ws=1,input=lastweek,anchor='A1')
+lw<-gs_title('lastweek2')
+gs_edit_cells(lw,ws=1,input=lastweek,anchor='A1')
 
 
 
