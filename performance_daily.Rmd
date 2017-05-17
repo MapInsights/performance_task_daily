@@ -774,7 +774,7 @@ df_performance_NS_3min$Percent <- round((df_performance_NS_3min$JobSum / df_perf
 ### TOTAL figure per day
 
 # calculate performance ontime
-performance_3min<-gtc[gtc$arrival_bucket == '20+ min early'
+performance_3min_total<-gtc[gtc$arrival_bucket == '20+ min early'
               |  gtc$arrival_bucket == '10-20 min early'
               |  gtc$arrival_bucket == '6-10 min early'
               |  gtc$arrival_bucket == '4-5 min early'
@@ -784,14 +784,14 @@ performance_3min<-gtc[gtc$arrival_bucket == '20+ min early'
 
 
 # calculater overhall performance and per shift
-df_per_date <- group_by(gtc, Date) %>%
+df_per_date_total <- group_by(gtc, Date) %>%
   summarise(JobTotal = sum(Count))
-df_performance_3min <- group_by(performance_3min, Date) %>%
+df_performance_3min_total <- group_by(performance_3min_total, Date) %>%
   summarise(JobSum = sum(Count))
-df_performance_3min <- merge(df_performance_3min, df_per_date, by = c('Date') )
-df_performance_3min$Percent <- round((df_performance_3min$JobSum / df_performance_3min$JobTotal)*100,2)
+df_performance_3min_total <- merge(df_performance_3min_total, df_per_date, by = c('Date') )
+df_performance_3min_total$Percent <- round((df_performance_3min_total$JobSum / df_performance_3min_total$JobTotal)*100,2)
 # save table to use in inputA
-daily_perf <- df_performance_3min$Percent
+daily_perf <- df_performance_3min_total$Percent
 ```
 
 
