@@ -481,8 +481,7 @@ gtc[gtc$asap == 'prebook' & gtc$Type == 'G10',]$Type2 <- 'prebook_g10'
 gtc[gtc$asap == 'prebook' & gtc$Type == 'Account',]$Type2 <- 'prebook_account'
 ## Performance
 
-# save all jobs not cleaned for performance purpose
-gtc2 <- gtc
+
 ```
 
 
@@ -510,6 +509,9 @@ ns<-nrow(nightshift)
 
 
 ```{r}
+# save all jobs not cleaned for performance purpose
+gtc2 <- gtc
+
 # extract first part of postcode
 library(reshape2)
 library(stringr)
@@ -788,7 +790,7 @@ df_per_date_total <- group_by(gtc, Date) %>%
   summarise(JobTotal = sum(Count))
 df_performance_3min_total <- group_by(performance_3min_total, Date) %>%
   summarise(JobSum = sum(Count))
-df_performance_3min_total <- merge(df_performance_3min_total, df_per_date, by = c('Date') )
+df_performance_3min_total <- merge(df_performance_3min_total, df_per_date_total, by = c('Date') )
 df_performance_3min_total$Percent <- round((df_performance_3min_total$JobSum / df_performance_3min_total$JobTotal)*100,2)
 # save table to use in inputA
 daily_perf <- df_performance_3min_total$Percent
@@ -1170,10 +1172,10 @@ gtc_cleaned <- gtc
 gtc <- gtc2
 asapgtc<-gtc2[(gtc2$asap=='asap'),]
 Pregtc<-gtc2[(gtc2$asap!='asap'),]
-asapG10<-gtc2[(gtc2$asap=='asap' & gtc2$AccountNumber=='G10'),]
-asapAcc<-gtc2[(gtc2$asap=='asap' & gtc2$AccountNumber!='G10'),]
-PreG10<-gtc2[(gtc2$asap!='asap' & gtc2$AccountNumber=='G10'),]
-PreAcc<-gtc2[(gtc2$asap!='asap' & gtc2$AccountNumber!='G10'),]
+asapG10<-gtc2[(gtc2$asap=='asap' & gtc2$Type=='G10'),]
+asapAcc<-gtc2[(gtc2$asap=='asap' & gtc2$Type!='G10'),]
+PreG10<-gtc2[(gtc2$asap!='asap' & gtc2$Type=='G10'),]
+PreAcc<-gtc2[(gtc2$asap!='asap' & gtc2$Type!='G10'),]
 
 tblJobs<-c(nrow(gtc),nrow(PreAcc),nrow(asapAcc),nrow(PreG10),nrow(asapG10))
 tblJobs <-rbind( c('All jobs','PreBooked Account','ASAP Account','Prebooked G10','ASAP G10'),tblJobs)
@@ -2398,8 +2400,8 @@ inputA <- c(inputA, dl_summary)
 
 #Activity
 ###################################################################
-j_sh_acc = group_by(gtc, Type, shift) %>% summarise(Count = sum(Count))
-j_sh = group_by(gtc, shift) %>% summarise(Count = sum(Count))
+j_sh_acc = group_by(gtc2, Type, shift) %>% summarise(Count = sum(Count))
+j_sh = group_by(gtc2, shift) %>% summarise(Count = sum(Count))
 
 inputA<-c(inputA, j_sh_acc$Count[3],  j_sh_acc$Count[1], j_sh$Count[1], j_sh_acc$Count[4],   j_sh_acc$Count[2], j_sh$Count[2], tblJobs["Total","G10"],tblJobs["Total","Account"],tblJobs["Total","Total"],DeadMilesSum,DeadMilesMean)
 
