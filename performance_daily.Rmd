@@ -103,7 +103,9 @@ declare @FROM datetime
 declare @TO datetime
 set @FROM = DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111))
 set @TO = DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111)) +'23:59:59'
-select j.id, ca.number as 'AccountNumber', ca.name as 'AccountName', cg.name as 'Grade', j.jobDate, jh.actionDate as 'ArrivalTime',
+select j.id, ca.number as 'AccountNumber', ca.name as 'AccountName', cg.name as 'Grade', j.creationDate, j.jobDate, jh.actionDate as 'ArrivalTime',
+datediff(minute,j.creationDate, jh.actionDate) 'ActualResponseTime',
+case when datediff(minute,j.creationDate, jh.actionDate) < 20 then 1 else 0 end as 'RTunder20min',
 DATEDIFF(minute, j.jobDate, jh.actionDate) as 'MinDiff',
 c.name as 'Driver',
 isnull(vt.name, 'Partners') as 'VehicleType', s.name,
@@ -153,6 +155,7 @@ left join Echo_core_prod..services s on j.service_id = s.id
 where j.jobstatus in (7,10) 
 and j.creationtype not in (9,10,11,12)
 and j.jobDate between @FROM and @TO
+
 
 order by j.id
 
@@ -815,14 +818,24 @@ valueBox(daily_perf,
 
 
 ```{r }
-day<-c(ds,df_performance_DS_3min$Percent,df_performance_DS_ontime$Percent)
-night<-c(ns,df_performance_NS_3min$Percent,df_performance_NS_ontime$Percent)
-total<-c(nrow(gtc2),df_performance_3min$Percent,df_performance_ontime$Percent)
+# get asap response time under 20 min in %
+# day shift
+day_under20 <- round(sum(dayshift[dayshift$asap == 'asap',]$RTunder20min) / sum(dayshift[dayshift$asap == 'asap',]$Count) * 100, 1)
+#night shift
+night_under20 <- round(sum(nightshift[nightshift$asap == 'asap',]$RTunder20min) / sum(nightshift[nightshift$asap == 'asap',]$Count) * 100, 1)
+#total
+total_under20 <- round(sum(gtc[gtc$asap == 'asap',]$RTunder20min) / sum(gtc[gtc$asap == 'asap',]$Count) * 100, 1)
+
+
+# bind all in one table 
+day<-c(ds,df_performance_DS_3min$Percent,df_performance_DS_ontime$Percent, day_under20)
+night<-c(ns,df_performance_NS_3min$Percent,df_performance_NS_ontime$Percent, night_under20)
+total<-c(nrow(gtc2),df_performance_3min$Percent,df_performance_ontime$Percent, total_under20)
 
 tbl<-rbind(day,night,total)
 
 #colnames(tbl, do.NULL = TRUE, prefix = "")
-colnames(tbl) <- c("Jobs", "ASAPOnTime+3mins","PrebookOnTime+3mins","ASAPOnTime","PreBookOnTime")
+colnames(tbl) <- c("Jobs", "ASAPOnTime+3mins","PrebookOnTime+3mins","ASAPOnTime","PreBookOnTime", "ASAP_under20min")
 tbl_ <- as.data.frame(tbl)
 
 formattable(tbl_, list(
@@ -830,7 +843,9 @@ formattable(tbl_, list(
   `ASAPOnTime+3mins` = color_tile("white", "orange"),
   `PrebookOnTime+3mins` = color_tile("white", "orange"),
   ASAPOnTime= color_tile("white", "orange"),
-  PreBookOnTime = color_tile("white", "orange")))
+  PreBookOnTime = color_tile("white", "orange"),
+  ASAP_under20min = color_tile("white", "pink")
+))
 
 
 #get terms for geckoboard AC search term
