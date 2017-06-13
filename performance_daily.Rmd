@@ -404,9 +404,9 @@ select
     c1.name as 'Callsign driver who completed this job',
     ar.name as 'PostCodePU',
     DATEPART(hh, j.jobDate)*60 + DATEPART(mi, j.jobDate) 'TimeInMin',
-	case when (DATEPART(hour, j.jobDate)*60 + DATEPART(mi, j.jobDate) >= 0 and DATEPART(hour, j.jobDate)*60 + DATEPART(mi, j.jobDate)< 360) then 'NightShift'
-	     when (DATEPART(hour, j.jobDate)*60 + DATEPART(mi, j.jobDate) >= 360 and DATEPART(hour, j.jobDate)*60 + DATEPART(mi, j.jobDate)< 1080) then 'DayShift'
-	     when (DATEPART(hour, j.jobDate)*60 + DATEPART(mi, j.jobDate) >= 1080) then 'NightShift' end 'Shift'
+	case when (DATEPART(hour, j.jobDate)*60 + DATEPART(mi, j.jobDate) >= 0 and DATEPART(hour, j.jobDate)*60 + DATEPART(mi, j.jobDate)< 37.5) then 'NightShift'
+	     when (DATEPART(hour, j.jobDate)*60 + DATEPART(mi, j.jobDate) >= 375 and DATEPART(hour, j.jobDate)*60 + DATEPART(mi, j.jobDate)< 1095) then 'DayShift'
+	     when (DATEPART(hour, j.jobDate)*60 + DATEPART(mi, j.jobDate) >= 1095) then 'NightShift' end 'Shift'
 from echo_core_prod..job_history  jh
     left join echo_core_prod..drivers d on d.mobileId=CONVERT(varchar(max),jh.shortArg)
     left join echo_core_prod..callsigns c on c.driver_id=d.employee_id
@@ -429,9 +429,9 @@ select
     c1.name as 'Callsign driver who completed this job',
     ar.name as 'PostCodePU',
     DATEPART(hh, j.jobDate)*60 + DATEPART(mi, j.jobDate) 'TimeInMin',
-	case when (DATEPART(hour, j.jobDate)*60 + DATEPART(mi, j.jobDate) >= 0 and DATEPART(hour, j.jobDate)*60 + DATEPART(mi, j.jobDate)< 360) then 'NightShift'
-	     when (DATEPART(hour, j.jobDate)*60 + DATEPART(mi, j.jobDate) >= 360 and DATEPART(hour, j.jobDate)*60 + DATEPART(mi, j.jobDate)< 1080) then 'DayShift'
-	     when (DATEPART(hour, j.jobDate)*60 + DATEPART(mi, j.jobDate) >= 1080) then 'NightShift' end 'Shift'
+	case when (DATEPART(hour, j.jobDate)*60 + DATEPART(mi, j.jobDate) >= 0 and DATEPART(hour, j.jobDate)*60 + DATEPART(mi, j.jobDate)< 375) then 'NightShift'
+	     when (DATEPART(hour, j.jobDate)*60 + DATEPART(mi, j.jobDate) >= 375 and DATEPART(hour, j.jobDate)*60 + DATEPART(mi, j.jobDate)< 1095) then 'DayShift'
+	     when (DATEPART(hour, j.jobDate)*60 + DATEPART(mi, j.jobDate) >= 1095) then 'NightShift' end 'Shift'
 from Archive_echo_core_prod..job_history  jh
     left join echo_core_prod..drivers d on d.mobileId=CONVERT(varchar(max),jh.shortArg)
     left join echo_core_prod..callsigns c on c.driver_id=d.employee_id
@@ -443,6 +443,7 @@ from Archive_echo_core_prod..job_history  jh
     left join echo_core_prod..addresses a on a.id=js.address_id
     left join echo_core_prod..areas ar on ar.id=a.postcode_id
 where jh.actionType=19 and jh.userName=i.fullName and js.orderNumber=0 and j.jobDate between @yesterdayFROM and @yesterdayTO
+order by j.jobDate
 
 ")
 
@@ -490,22 +491,22 @@ gtc[gtc$asap == 'prebook' & gtc$Type == 'Account',]$Type2 <- 'prebook_account'
 
 
 ```{r}
-#Day defined as 6:30 to 18:29 
-#Night defined as 00:00 to 06:29 and 18:30 to 23:59
+#Day defined as 6:15 to 18:14 
+#Night defined as 00:00 to 06:14 and 18:15 to 23:59
 gtc$shift <- 'NightShift'
-gtc[gtc$TimeInMin >= 390 & gtc$TimeInMin <= 1109,]$shift <- 'DayShift'
+gtc[gtc$TimeInMin >= 375 & gtc$TimeInMin <= 1095,]$shift <- 'DayShift'
 ```
 
 
 ```{r}
-### Day shift (6:30 to 18:29). Job Volume  
+### Day shift (6:15 to 18:14). Job Volume  
 dayshift <- gtc[gtc$shift == 'DayShift',]
 ds<-nrow(dayshift)
 ```
 
 
 ```{r}
-### Night shift (00:00 to 06:29 and 18:30 to 23:59). Job Volume  
+### Night shift (00:00 to 06:14 and 18:15 to 23:59). Job Volume  
 nightshift <- gtc[gtc$shift == 'NightShift',]
 ns<-nrow(nightshift)
 ```
