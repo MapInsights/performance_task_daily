@@ -966,7 +966,9 @@ names(Lite)[3] <- 'Lite_drivers'
 
 DRIVERS <- subset(merge(GTC, Lite, by = 'Timestamp', all = TRUE), select = c(Timestamp, GTC_drivers, Lite_drivers))
 
-DRIVERS$Hour <- seq(0,23,1)
+# fix bug if hours are missing
+DRIVERS$Hour = as.numeric(substr(DRIVERS$Timestamp, 12,13))
+
 
 write.xlsx2(DRIVERS, file=filename, sheetName="Drivers",row.names = FALSE) 
 
