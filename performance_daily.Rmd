@@ -16,6 +16,7 @@ Summary
 ```{r echo=FALSE}
 start <- as.Date(Sys.time() - (60*60*24))
 start
+
 ```
 
 
@@ -457,7 +458,7 @@ odbcClose(odbcChannel)
 
 
 ```{r}
-match <- c('2200', '6443', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7', 'G8', 'G9.1', 'G9.5', 'GTC888', 'G50', 'G51', 'G5555', '7002', 'LONGTC1387')
+match <- c('2200', '6443', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7', 'G8', 'G9.1', 'G9.5', 'GTC888', 'G50', 'G51', 'G5555', '7002', 'LONGTC1387', 'C2449')
 
 gtc <- gtc[!(gtc$AccountNumber %in% match),]
 
