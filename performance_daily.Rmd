@@ -2436,6 +2436,10 @@ inputA<-c(inputA,ResponseTimePeriod[,"AvgResponseTime"])
 
 
 
+#time under 20 mins
+###################################################################
+inputA<-c(inputA,day_under20,night_under20,total_under20)
+
 
 #On Time %
 ###################################################################
@@ -2534,6 +2538,9 @@ colnames(inputA)<-c(
                     "RT 6-10",
                     "RT 10-1",
                     "RT 1-6",
+                    "day_under20",
+                    "night_under20",
+                    "total_under20",
                     "DAY PREBOOK ON TIME",
                     "DAY ASAP ON TIME",
                     "DAY OVERALL ON TIME",
