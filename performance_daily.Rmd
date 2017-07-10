@@ -559,6 +559,9 @@ gtc <- gtc[!(gtc$creationType1 %in% c(5,16)),]
 gtc <- gtc[(gtc$AccountNumber!='C6000'),]
 
 gtc <- gtc[!is.na(gtc$MinDiff),]
+
+
+write.xlsx2(gtc, file=filename, sheetName="performance_jobs",row.names = FALSE) 
 ```
 
 
@@ -971,7 +974,7 @@ DRIVERS <- subset(merge(GTC, Lite, by = 'Timestamp', all = TRUE), select = c(Tim
 DRIVERS$Hour = as.numeric(substr(DRIVERS$Timestamp, 12,13))
 
 
-write.xlsx2(DRIVERS, file=filename, sheetName="Drivers",row.names = FALSE) 
+write.xlsx2(DRIVERS, file=filename, sheetName="Drivers",row.names = FALSE, append = TRUE) 
 
 
 library(reshape2)
