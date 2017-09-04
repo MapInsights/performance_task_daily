@@ -14,7 +14,9 @@ Summary
 
 
 ```{r echo=FALSE}
-start <- as.Date(Sys.time() - (60*60*24))
+
+daysAgo<-1
+start <- as.Date(Sys.time() - (60*60*24*daysAgo))
 start
 
 ```
@@ -78,10 +80,10 @@ f1$NightASAP<-as.numeric(f1$NightASAP)
 f1$NightPrebook<-as.numeric(f1$NightPrebook)
 
 #get today in crazy excel days since 1900
-xlToday<-as.Date(Sys.Date())
+xlToday<-as.Date(start+1)
 xlToday<-difftime(xlToday,'1900-01-01',units='days') + 2 
 xlToday<-as.numeric(xlToday)
-rowNo<-as.numeric(difftime(as.Date(Sys.Date()),'2015-12-21',units='days') )
+rowNo<-as.numeric(difftime(as.Date(start+1),'2015-12-21',units='days') )
 
 ```
 
@@ -98,12 +100,14 @@ odbcChannel <- odbcConnect('Rstudio', uid='Daria Alekseeva', pwd='Welcome30')
 #odbcChannel <- odbcConnect('echo_prod', uid='Daria Alekseeva', pwd='Welcome30')
 
 # query for last day which is not in archive yet
-gtc  <- sqlQuery( odbcChannel, 
-"
+gtc  <- sqlQuery(odbcChannel,paste(
+                    "
 declare @FROM datetime
 declare @TO datetime
-set @FROM = DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111))
-set @TO = DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111)) +'23:59:59'
+set @FROM =DATEADD(DAY, -",daysAgo,", CONVERT(CHAR(10), getdate(), 111))
+set @TO =DATEADD(DAY, -",daysAgo,", CONVERT(CHAR(10), getdate(), 111)) + '23:59:59'
+
+
 select j.id, ca.number as 'AccountNumber', ca.name as 'AccountName', cg.name as 'Grade', j.creationDate, j.jobDate, jh.actionDate as 'ArrivalTime',
 datediff(minute,j.creationDate, jh.actionDate) 'ActualResponseTime',
 case when datediff(minute,j.creationDate, jh.actionDate) < 20 then 1 else 0 end as 'RTunder20min',
@@ -161,14 +165,15 @@ and j.jobDate between @FROM and @TO
 order by j.id
 
 
-")
+"))
 
-DeadMiles<-sqlQuery( odbcChannel, 
-"
+DeadMiles<- sqlQuery(odbcChannel,paste(
+                    "
 declare @FROM datetime
 declare @TO datetime
-set @FROM = DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111))
-set @TO = DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111)) +'23:59:59'
+set @FROM =DATEADD(DAY, -",daysAgo,", CONVERT(CHAR(10), getdate(), 111))
+set @TO =DATEADD(DAY, -",daysAgo,", CONVERT(CHAR(10), getdate(), 111)) + '23:59:59'
+
 select			
 	j.id,	
 j.actualDistance,
@@ -235,41 +240,42 @@ left join echo_core_prod..jobs j on j.id=a0.jobReference
 	and j.jobDate between @FROM and @TO
 --	and journeyToPU is not null		
 	order by j.id
-")
+"))
 
-CRMQuery <-sqlQuery( odbcChannel,
-     "declare @FROM datetime
+CRMQuery <- sqlQuery(odbcChannel,paste(
+                    "
+declare @FROM datetime
 declare @TO datetime
-set @FROM = DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111))
-set @TO = DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111)) +'23:59:59'
+set @FROM =DATEADD(DAY, -",daysAgo,", CONVERT(CHAR(10), getdate(), 111))
+set @TO =DATEADD(DAY, -",daysAgo,", CONVERT(CHAR(10), getdate(), 111)) + '23:59:59'
 
 select ji.id , ji.customer_account_id
 from echo_core_prod..job_issues ji
 where creationDate between @FROM and @TO
 and category_id in (3,8,9,10,11,12,17,18,22)
                       
-                      ")
+                      "))
 
 
 ##query for each 5 min driver status 
-drivers <- sqlQuery( odbcChannel, 
-"
+drivers <- sqlQuery(odbcChannel,paste(
+                    "
 declare @FROM datetime
 declare @TO datetime
-set @FROM = DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111))
-set @TO = DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111)) +'23:59:59'
+set @FROM =DATEADD(DAY, -",daysAgo,", CONVERT(CHAR(10), getdate(), 111))
+set @TO =DATEADD(DAY, -",daysAgo,", CONVERT(CHAR(10), getdate(), 111)) + '23:59:59'
 
 select ID, convert(char(23),Timestamp, 121) as 'Timestamp', VehicleType, OnlineDrivers 
 from Archive_echo_core_prod.dbo.OnlineDriversHistory 
-where timestamp between @FROM and @TO ")
+where timestamp between @FROM and @TO "))
 
 
-jobhistory <- sqlQuery( odbcChannel, 
-"
+jobhistory <- sqlQuery(odbcChannel,paste(
+                    "
 declare @FROM datetime
 declare @TO datetime
-set @FROM = DATEADD(DAY, -2, CONVERT(CHAR(10), getdate(), 111))
-set @TO = DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111)) +'23:59:59'
+set @FROM =DATEADD(DAY, -",daysAgo+1,", CONVERT(CHAR(10), getdate(), 111))
+set @TO =DATEADD(DAY, -",daysAgo,", CONVERT(CHAR(10), getdate(), 111)) + '23:59:59'
 
 select j.id, j.jobDate, ca.number, ca.name, c.name 'UserName' ,
 (select min(jh.actionDate) from
@@ -289,27 +295,30 @@ left join echo_core_prod..customer_accounts ca on j.customer_account_id = ca.id
 left join Echo_core_prod..callsigns c on c.driver_id=j.driver_id
 where j.jobStatus = 7 and j.jobDate between @FROM and @TO and c.name is not null
 and c.name not like 'DD%'
-")
+"))
 
-ResponseTime <-sqlQuery( odbcChannel,"
-declare @startDate date
-declare @endDate date
-set @startDate = DATEADD(DAY, -2, getdate())
-set @endDate = DATEADD(DAY, -1, getdate()) + '23:59:59'
+ResponseTime <- sqlQuery(odbcChannel,paste(
+                    "
+declare @FROM datetime
+declare @TO datetime
+set @FROM =DATEADD(DAY, -",daysAgo+1,", CONVERT(CHAR(10), getdate(), 111))
+set @TO =DATEADD(DAY, -",daysAgo,", CONVERT(CHAR(10), getdate(), 111)) + '23:59:59'
+
 select startDate,datepart(hour,startDate) 'Hour',DATEPART(minute,startDate) 'Minute', 
 case when pickupAddress like '%TW6%' then 'TW6, Term5' else pickupAddress end 'pickupAddress', delay,serviceId, source
 from echo_core_prod..dynamic_delay_promises where (source = 8 or pickupAddress like '%TW6%') and
- startDate between  @startDate and @endDate 
+ startDate between  @FROM and @TO 
                  
                      
-                     ")
+                     "))
 
-cashblock <- sqlQuery( odbcChannel, 
-"
+cashblock <- sqlQuery(odbcChannel,paste(
+                    "
 declare @FROM datetime
 declare @TO datetime
-set @FROM = DATEADD(DAY, -6, CONVERT(CHAR(10), getdate(), 111))
-set @TO = DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111)) +'23:59:59'
+set @FROM =DATEADD(DAY, -",daysAgo+5,", CONVERT(CHAR(10), getdate(), 111))
+set @TO =DATEADD(DAY, -",daysAgo,", CONVERT(CHAR(10), getdate(), 111)) + '23:59:59'
+
 
 	select daa.id, daa.REVTYPE, daa.fromTime, daa.toTime, r.timestamp, r.username,
 	case daa.dayOfWeek when 1 then 'Monday'
@@ -324,13 +333,14 @@ set @TO = DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111)) +'23:59:59'
 	where timestamp between @FROM and @TO
 	and type = 1
 	and customer_account_id = 3743
-")
+"))
 
-bookings <-sqlQuery( odbcChannel, 
-  "declare @yesterdayFROM datetime
-declare @yesterdayTO datetime
-set @yesterdayFROM = DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111))
-set @yesterdayTO = DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111)) + '23:59:59'
+bookings <- sqlQuery(odbcChannel,paste(
+                    "
+declare @FROM datetime
+declare @TO datetime
+set @FROM =DATEADD(DAY, -",daysAgo,", CONVERT(CHAR(10), getdate(), 111))
+set @TO =DATEADD(DAY, -",daysAgo,", CONVERT(CHAR(10), getdate(), 111)) + '23:59:59'
 
 select j.id, j.secondNumber, jh.userName, jh.actionDate,jh.shortArg, jh.jobReference,jh2.shortArg,jh2.actionDate,jh2.userName,j.creationType,j.jobStatus,
 datepart(year,j.jobdate) 'JobYear',
@@ -345,7 +355,7 @@ left join (select * from Archive_Echo_Core_Prod..job_history union select * from
 where --jh.shortArg = 'Cancelled'
  j.creationType in (5,16,18,4,7)
 and j.jobStatus in (7,9,10)
-and j.jobDate between @yesterdayFROM and @yesterdayTO")
+and j.jobDate between @FROM and @TO"))
 
 #odbcClose(odbcChannel)
 
@@ -355,10 +365,12 @@ and j.jobDate between @yesterdayFROM and @yesterdayTO")
 #odbcChannel <- odbcConnect('echo_prod', uid='Daria Alekseeva', pwd='Welcome30')
 
 
-snapshot<-sqlQuery( odbcChannel, "declare @yesterdayFROM datetime
-declare @yesterdayTO datetime
-set @yesterdayFROM = DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111))
-set @yesterdayTO = DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111)) + '23:59:59'
+snapshot<- sqlQuery(odbcChannel,paste(
+                    "
+declare @FROM datetime
+declare @TO datetime
+set @FROM =DATEADD(DAY, -",daysAgo,", CONVERT(CHAR(10), getdate(), 111))
+set @TO =DATEADD(DAY, -",daysAgo,", CONVERT(CHAR(10), getdate(), 111)) + '23:59:59'
 select --distinct datepart(HOUR,j.jobdate) 'Hour',
 		count(DISTINCT (case when  datepart(hour,jt.actualAcceptTime) < '3' and datepart(hour,jt.actualPodTime) >= '3' then jt.id else null end)) '3am',
 		count(DISTINCT (case when  datepart(hour,jt.actualAcceptTime) < '8' and datepart(hour,jt.actualPodTime) >= '8' then jt.id else null end)) '8am',
@@ -368,13 +380,16 @@ select --distinct datepart(HOUR,j.jobdate) 'Hour',
 		count(DISTINCT (case when  datepart(hour,jt.actualAcceptTime) < '23' and datepart(hour,jt.actualPodTime) >= '23' then jt.id else null end)) '11pm'
 from echo_core_prod..job_times jt
 left join echo_core_prod..jobs j on j.job_times_id =jt.id 
-where j.jobDate between @yesterdayFROM and @yesterdayTO")
+where j.jobDate between @FROM and @TO"))
 
 
-snapshotASAP<-sqlQuery( odbcChannel, "declare @yesterdayFROM datetime
-declare @yesterdayTO datetime
-set @yesterdayFROM = DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111))
-set @yesterdayTO = DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111)) + '23:59:59'
+snapshotASAP<- sqlQuery(odbcChannel,paste(
+                    "
+declare @FROM datetime
+declare @TO datetime
+set @FROM =DATEADD(DAY, -",daysAgo,", CONVERT(CHAR(10), getdate(), 111))
+set @TO =DATEADD(DAY, -",daysAgo,", CONVERT(CHAR(10), getdate(), 111)) + '23:59:59'
+
 select --distinct datepart(HOUR,j.jobdate) 'Hour',
 		count(DISTINCT (case when  datepart(hour,jt.actualAcceptTime) < '3' and datepart(hour,jt.actualPodTime) >= '3' then jt.id else null end)) '3am',
 		count(DISTINCT (case when  datepart(hour,jt.actualAcceptTime) < '8' and datepart(hour,jt.actualPodTime) >= '8' then jt.id else null end)) '8am',
@@ -384,17 +399,17 @@ select --distinct datepart(HOUR,j.jobdate) 'Hour',
 		count(DISTINCT (case when  datepart(hour,jt.actualAcceptTime) < '23' and datepart(hour,jt.actualPodTime) >= '23' then jt.id else null end)) '11pm'
 from echo_core_prod..job_times jt
 left join echo_core_prod..jobs j on j.job_times_id =jt.id 
-where j.jobDate between @yesterdayFROM and @yesterdayTO
-and j.asap = 1")
+where j.jobDate between @FROM and @TO
+and j.asap = 1"))
 
 
 
-portal<-sqlQuery( odbcChannel, 
-"
-declare @yesterdayFROM datetime
-declare @yesterdayTO datetime
-set @yesterdayFROM =DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111))
-set @yesterdayTO =DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111)) + '23:59:59'
+portal<- sqlQuery(odbcChannel,paste(
+                    "
+declare @FROM datetime
+declare @TO datetime
+set @FROM =DATEADD(DAY, -",daysAgo,", CONVERT(CHAR(10), getdate(), 111))
+set @TO =DATEADD(DAY, -",daysAgo,", CONVERT(CHAR(10), getdate(), 111)) + '23:59:59'
 select
     jh.jobReference as 'Job_number',
     j.jobstatus as 'job status',
@@ -418,7 +433,7 @@ from echo_core_prod..job_history  jh
     left join echo_core_prod..job_stops js on js.job_id=jh.jobReference
     left join echo_core_prod..addresses a on a.id=js.address_id
     left join echo_core_prod..areas ar on ar.id=a.postcode_id
-where jh.actionType=19 and jh.userName=i.fullName and js.orderNumber=0 and j.jobDate between @yesterdayFROM and @yesterdayTO
+where jh.actionType=19 and jh.userName=i.fullName and js.orderNumber=0 and j.jobDate between @FROM and @TO
 union
 select
     jh.jobReference as 'Job_number',
@@ -443,10 +458,10 @@ from Archive_echo_core_prod..job_history  jh
     left join echo_core_prod..job_stops js on js.job_id=jh.jobReference
     left join echo_core_prod..addresses a on a.id=js.address_id
     left join echo_core_prod..areas ar on ar.id=a.postcode_id
-where jh.actionType=19 and jh.userName=i.fullName and js.orderNumber=0 and j.jobDate between @yesterdayFROM and @yesterdayTO
+where jh.actionType=19 and jh.userName=i.fullName and js.orderNumber=0 and j.jobDate between @FROM and @TO
 order by j.jobDate
 
-")
+"))
 
 odbcClose(odbcChannel)
 
@@ -944,10 +959,10 @@ ResponseChart$Hour = ResponseChart$segment * 5 / 60
 
 ```{r }
  # doing the necesary work
-names(drivers) <- c('ID','Timestamp','VehicleType','OnlineDrivers')
-drivers$Service <- ''
-drivers$Service[drivers$VehicleType == 'Driver Direct'] <- 'Lite'
-drivers$Service[drivers$VehicleType != 'Driver Direct'] <- 'GTC'
+#names(drivers) <- c('ID','Timestamp','VehicleType','OnlineDrivers')
+#drivers$Service <- ''
+#drivers$Service[drivers$VehicleType == 'Driver Direct'] <- 'Lite'
+#drivers$Service[drivers$VehicleType != 'Driver Direct'] <- 'GTC'
 
 drivers$Timestamp <- as.POSIXct(drivers$Timestamp)
 
@@ -994,7 +1009,7 @@ library(dplyr)
 
 #GTC Jobs working (but not the chart)
 file <- jobhistory
-yesterday <-  as.Date(Sys.time()-(60*60*24))
+yesterday <-  as.Date(Sys.time()-(60*60*24*daysAgo))
     
 
 file <- file[grepl(yesterday, file$TimeAccepted) |  grepl(yesterday, file$TimeArrived) | grepl(yesterday, file$TimePoB) | grepl(yesterday, file$TimeCompleted),]
@@ -1674,15 +1689,19 @@ f1[rowNo,c(22:25)]<-c(nrow(PreAcc)+nrow(asapAcc),CRMRatioAccount,accountPre,acco
 
 
 write.xlsx2(f1,file=forecast,headers=TRUE,row.names=FALSE)
-rowStart<-rowNo-8
-lastweek<-f1[c(rowStart:rowNo),c(1:2,4:25)]
+
+#Get latest week always
+rowNow<-as.numeric(difftime(as.Date(Sys.Date()),'2015-12-21',units='days') )
+
+rowStart<-rowNow-8
+lastweek<-f1[c(rowStart:rowNow),c(1:2,4:25)]
 lastweekName<-'forecast/LastWeek.xlsx'
 
 #Remove NAs which Gecko doesn't like
 lastweek[is.na(lastweek)]<-0
 
 lw<-gs_title('lastweek2')
-gs_edit_cells(lw,ws=1,input=lastweek,anchor='A1')
+#gs_edit_cells(lw,ws=1,input=lastweek,anchor='A1')
 
 
 
@@ -1852,37 +1871,38 @@ Row {data-height=100}
 # connect to database
 odbcChannel <- odbcConnect('Zeacom',uid  ='snapshot', pwd='Z3ac0m1234')
 
-calls  <- sqlQuery( odbcChannel, 
+calls  <- sqlQuery(odbcChannel,paste(
                     "
-declare @yesterdayFROM datetime
-declare @yesterdayTO datetime
-set @yesterdayFROM =DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111))
-set @yesterdayTO =DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111)) + '23:59:59'
+declare @FROM datetime
+declare @TO datetime
+set @FROM =DATEADD(DAY, -",daysAgo,", CONVERT(CHAR(10), getdate(), 111))
+set @TO =DATEADD(DAY, -",daysAgo,", CONVERT(CHAR(10), getdate(), 111)) + '23:59:59'
+
 
 select *, DATEPART(hh, Time)*60 + DATEPART(mi, Time) 'TimeInMin'
 from ZeacomConfig..pn_audit_calls ac
 where ac.Date is not null
-and ac.Date between @yesterdayFROM and @yesterdayTO
-")
+and ac.Date between @FROM and @TO
+"))
 odbcClose(odbcChannel)
 
 
 odbcChannel <- odbcConnect('Rstudio', uid='Daria Alekseeva', pwd='Welcome30')
 #odbcChannel <- odbcConnect('echo_prod', uid='Daria Alekseeva', pwd='Welcome30')
-bookings  <- sqlQuery( odbcChannel, 
-                       "
-declare @yesterdayFROM datetime
-declare @yesterdayTO datetime
-set @yesterdayFROM = DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111))
-set @yesterdayTO = DATEADD(DAY, -1, CONVERT(CHAR(10), getdate(), 111)) + '23:59:59'
+bookings  <- sqlQuery(odbcChannel,paste(
+                    "
+declare @FROM datetime
+declare @TO datetime
+set @FROM =DATEADD(DAY, -",daysAgo,", CONVERT(CHAR(10), getdate(), 111))
+set @TO =DATEADD(DAY, -",daysAgo,", CONVERT(CHAR(10), getdate(), 111)) + '23:59:59'
 
 select j.id, j.jobDate,j.creationDate, j.creationType, j.customer_account_id, DATEPART(hh, j.creationDate)*60 + DATEPART(mi, j.creationDate) 'TimeInMin'
 from Echo_core_prod..jobs j 
 where j.creationType=0  
-and j.creationDate between @yesterdayFROM and @yesterdayTO
+and j.creationDate between @FROM and @TO
 
 order by j.id
-")
+"))
 odbcClose(odbcChannel)
 
 # filter out outbound calls (type = O)
