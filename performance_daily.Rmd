@@ -1701,7 +1701,7 @@ lastweekName<-'forecast/LastWeek.xlsx'
 lastweek[is.na(lastweek)]<-0
 
 lw<-gs_title('lastweek2')
-#gs_edit_cells(lw,ws=1,input=lastweek,anchor='A1')
+gs_edit_cells(lw,ws=1,input=lastweek,anchor='A1')
 
 
 
