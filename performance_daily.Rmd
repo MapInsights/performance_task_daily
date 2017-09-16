@@ -1922,7 +1922,7 @@ dl$Count <- 1
 ### Day shift (8am to 8pm)
 ### Night shift (8pm to 8am) 
 ### split cc
-dl[is.na(dl$RingTime),]$RingTime <- 0
+dl[is.na(dl$RingTime),"RingTime"] <- 0
 dl$shift <- 'NightShift'
 if (nrow(dl[dl$TimeInMin >= 480 & dl$TimeInMin <= 1199,])>0) {
 dl[dl$TimeInMin >= 480 & dl$TimeInMin <= 1199,]$shift <- 'DayShift'}
