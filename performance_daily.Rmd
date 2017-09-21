@@ -120,6 +120,7 @@ j.jobStatus,
 j.actualDistance,
 j.totalDistance,
 j.totalPrice,
+j.partner_id,
 j.creationType 'creationType1',
 case when j.creationType=0  then 'Echo'
 	 when j.creationType=1  then 'Web'
@@ -2358,6 +2359,13 @@ handbackSummary[is.na(handbackSummary$total),"total"]<-0
 #add handbacks to inputA
 inputA<-c(inputA,handbackSummary[,"total"])
 
+#Subbed jobs
+###################################################################
+subbedJobs<-nrow(gtc[!is.na(gtc$partner_id), ])
+
+inputA<-c(inputA,subbedJobs)
+
+
 #Snapshots
 ###################################################################
 
@@ -2513,6 +2521,7 @@ colnames(inputA)<-c(
                     "One Transport HB Night",
                     "Morgan Stanley HB Day",
                     "Morgan Stanley HB Night",
+                    "SubbedJobs",
                     "3AM Jobs",
                     "3Am ASAP",
                     "3AM FLEET",
