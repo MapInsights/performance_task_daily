@@ -343,7 +343,8 @@ declare @TO datetime
 set @FROM =DATEADD(DAY, -",daysAgo,", CONVERT(CHAR(10), getdate(), 111))
 set @TO =DATEADD(DAY, -",daysAgo,", CONVERT(CHAR(10), getdate(), 111)) + '23:59:59'
 
-select j.id, j.secondNumber, jh.userName, jh.actionDate,jh.shortArg, jh.jobReference,jh2.shortArg,jh2.actionDate,jh2.userName,j.creationType,j.jobStatus,
+select j.id, j.secondNumber, jh.userName, jh.actionDate,jh.shortArg, jh.jobReference,jh2.shortArg,jh2.actionDate,jh2.userName,j.creationType,j.jobStatus,j.creationDate,
+datediff(minute,j.creationDate, jh.actionDate) 'minBeforeAction',
 datepart(year,j.jobdate) 'JobYear',
 datepart(ISO_WEEK,j.jobdate) 'JobWeek',
 datepart(Month,j.jobdate) 'JobMonth',
@@ -1779,7 +1780,8 @@ OneTBookings[OneTBookings$jobStatus==10 ,"result"]<-"COA"
 
 OneTBookings[OneTBookings$jobStatus==9 & OneTBookings$userName=="OneTransport" ,"result"]<-"CancelledUser"
 
-OneTBookings[(OneTBookings$jobStatus==9 & OneTBookings$userName!="OneTransport")  ,"result"]<-"Handback"
+OneTBookings[(OneTBookings$jobStatus==9 & OneTBookings$userName!="OneTransport"
+              & OneTBookings$minBeforeAction > 3)  ,"result"]<-"Handback"
 
 
 
