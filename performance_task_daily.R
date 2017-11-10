@@ -39,8 +39,8 @@ xlsx_files <- list.files(spreadsheets_dir, recursive=TRUE)
 xlsx_name <- paste(as.Date(Sys.time() - (60*60*24)), "_", "results.xlsx", sep = '')
   
 # Create mail lists
-base_list <- "McGarry.Con@greentomatocars.com;Daria.Alekseeva@greentomatocars.com;Julia.Thomas@transdevplc.co.uk);James.Rowe@greentomatocars.com;sean.sauter@transdevplc.co.uk;Christina.Stone@greentomatocars.com;Ian.Bates@greentomatocars.com;Lee.Holland@greentomatocars.com;controldesk@greentomatocars.com;Duncan.Fendom@greentomatocars.com;maxim.starostin@magenta-technology.com;petr.popov@magenta-technology.com;Paul.Jobling@greentomatocars.com;Tyrone.Hunte@greentomatocars.com;antony.carolan@greentomatocars.com;Haider.Variava@greentomatocars.com;Sophie.Jacobsen@greentomatocars.com;Moses.Adegoroye@greentomatocars.com;Tim.Stone@greentomatocars.com;Andrew.Middleton@greentomatocars.com;Tahir.Nazir@greentomatocars.com;Sales@greentomatocars.com;Sujas.Parikh@greentomatocars.com;Haris.Khan@greentomatocars.com"
-#daily_list <- "Daria.Alekseeva@greentomatocars.com"
+base_list <- "McGarry.Con@greentomatocars.com;Daria.Alekseeva@greentomatocars.com;Julia.Thomas@transdevplc.co.uk);James.Rowe@greentomatocars.com;sean.sauter@transdevplc.co.uk;Christina.Stone@greentomatocars.com;Ian.Bates@greentomatocars.com;Lee.Holland@greentomatocars.com;controldesk@greentomatocars.com;Duncan.Fendom@greentomatocars.com;maxim.starostin@magenta-technology.com;petr.popov@magenta-technology.com;Paul.Jobling@greentomatocars.com;Tyrone.Hunte@greentomatocars.com;antony.carolan@greentomatocars.com;Haider.Variava@greentomatocars.com;Sophie.Jacobsen@greentomatocars.com;Moses.Adegoroye@greentomatocars.com;Tim.Stone@greentomatocars.com;Andrew.Middleton@greentomatocars.com;Tahir.Nazir@greentomatocars.com;Sales@greentomatocars.com;Sujas.Parikh@greentomatocars.com;Haris.Khan@greentomatocars.com;jonny.goldstone@googlemail.com;Yinka.Ogunniyi@greentomatocars.com;muaaz.sarfaraz@greentomatocars.com"
+#daily_list <- "muaaz.sarfaraz@greentomatocars.com"
 
 # Send mail for each client and attach html report + spreadsheet
 library(RDCOMClient)
